@@ -34,6 +34,9 @@ GRANT SELECT, INSERT, UPDATE ON shopademia.inventory TO 'shopademia_app'@'localh
 GRANT SELECT, INSERT ON shopademia.audit_logs TO 'shopademia_app'@'localhost';
 GRANT SELECT, INSERT, UPDATE ON shopademia.carts TO 'shopademia_app'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON shopademia.cart_items TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON shopademia.orders TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT ON shopademia.order_items TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON shopademia.payments TO 'shopademia_app'@'localhost';
 ```
 
 If the API connects from a different host, replace `localhost` with the narrowest appropriate host restriction. Use the migration account only for schema migrations, and never use `root` from the application.
@@ -71,6 +74,12 @@ Customers register with `POST /api/v1/auth/register` using `email`, `displayName
 ## Customer cart
 
 Cart endpoints require a customer bearer token: `GET /api/v1/cart`, `POST /api/v1/cart/items` (`productId`, `quantity`), `PATCH /api/v1/cart/items/:itemId` (`quantity`), `DELETE /api/v1/cart/items/:itemId`, and `DELETE /api/v1/cart`. Cart ownership is derived from the verified customer token; cart/customer IDs and client prices/totals are not accepted. A cart holds at most 50 distinct products and 99 units per product. Adding or increasing a line requires an active product/category and sufficient unreserved inventory. Cart reads show current database prices and totals by currency, with flags for changed prices and unavailable or insufficient-stock items. A price snapshot is kept only to detect price changes; it is never used for totals.
+
+## Checkout and orders
+
+`POST /api/v1/checkout` requires a customer bearer token, a shipping JSON object (`recipientName`, `phone`, `addressLine1`, `city`, `region`, `postalCode`, `countryCode`, optional `addressLine2`), and an `Idempotency-Key` header of 16–128 safe characters. The API locks and revalidates the authenticated customer's cart, reloads current prices, verifies active products and available stock, and then creates an order with customer identity, shipping, and immutable item snapshots plus a pending payment record while decrementing inventory and clearing the cart in one transaction. Retrying with the same customer and key returns the original order. Mixed-currency carts are rejected because currency conversion is not part of this phase.
+
+Customers can list and view only their own orders with `GET /api/v1/orders` and `GET /api/v1/orders/:orderId`. Admins with the `admin` or `super_admin` role can list/view orders under `/api/v1/admin/orders`, update order status with `PATCH /api/v1/admin/orders/:orderId/status`, and record payment status with `PATCH /api/v1/admin/orders/:orderId/payment-status`. Order transitions are pending→confirmed/cancelled, confirmed→processing/cancelled, processing→shipped/cancelled, and shipped→delivered. Payment transitions are pending→paid/failed and failed→pending; cancelling an unpaid order also marks its payment cancelled. Cancelling an unpaid order restores its inventory in the same transaction; paid orders cannot be cancelled via this API. Payment status is recorded without a payment gateway.
 
 Admin catalog writes are under `/api/v1/admin/products` and `/api/v1/admin/categories`, including product status, inventory, and image operations. Every route in that admin catalog router requires an active admin token and a database-loaded `admin` or `super_admin` role. Writes use transactions and append audit records with request IDs and small before/after summaries. Duplicate unique values return 409. Categories are soft-deleted only when they have no products or child categories.
 
