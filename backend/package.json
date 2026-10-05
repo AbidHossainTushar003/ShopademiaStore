@@ -1,0 +1,20 @@
+{
+  "name": "shopademia-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shopademia API foundation",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0"
+  }
+}
