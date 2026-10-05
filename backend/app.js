@@ -18,6 +18,7 @@ const createAdminStoresRoutes = require('./routes/v1/admin-stores.routes');
 const requestId = require('./middleware/request-id');
 const { authorizeStoreImage, createStoreContext } = require('./middleware/store-context');
 const limitPublicMediaRequests = require('./middleware/public-media-request-limit');
+const requestLogger = require('./middleware/request-logger');
 
 function createApp(config, pool) {
   if (!config.auth) {
@@ -30,6 +31,7 @@ function createApp(config, pool) {
   app.set('trust proxy', false);
   app.use(helmet());
   app.use(requestId);
+  app.use(requestLogger);
   app.use(createStoreContext(pool));
   app.use('/api/v1/admin', (_request, response, next) => {
     response.setHeader('Cache-Control', 'private, no-store');
