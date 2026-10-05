@@ -11,14 +11,22 @@ function createAdminOrdersController(pool) {
   return {
     async list(request, response) {
       const query = validateOrderListQuery(request.query, { admin: true });
-      const result = await ordersService.listAdminOrders(pool, query);
+      const result = await ordersService.listAdminOrders(
+        pool,
+        request.store.store_id,
+        query,
+      );
       return response.status(200).json({ success: true, ...result });
     },
 
     async get(request, response) {
       validateNoOrderQuery(request.query);
       const orderId = validateOrderId(request.params.orderId);
-      const order = await ordersService.getAdminOrder(pool, orderId);
+      const order = await ordersService.getAdminOrder(
+        pool,
+        request.store.store_id,
+        orderId,
+      );
       return order
         ? response.status(200).json({ success: true, data: order })
         : response.status(404).json({
@@ -35,6 +43,7 @@ function createAdminOrdersController(pool) {
         pool,
         request.admin,
         request.id,
+        request.store.store_id,
         orderId,
         status,
       );
@@ -54,6 +63,7 @@ function createAdminOrdersController(pool) {
         pool,
         request.admin,
         request.id,
+        request.store.store_id,
         orderId,
         status,
       );

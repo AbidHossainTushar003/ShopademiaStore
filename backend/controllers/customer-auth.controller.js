@@ -14,7 +14,12 @@ function createCustomerAuthController(pool, authConfig) {
 
     async login(request, response) {
       const credentials = validateLoginBody(request.body);
-      const token = await customerAuthService.login(pool, authConfig, credentials);
+      const token = await customerAuthService.login(
+        pool,
+        authConfig,
+        request.store.store_id,
+        credentials,
+      );
       return response.status(200).json({ success: true, data: token });
     },
   };

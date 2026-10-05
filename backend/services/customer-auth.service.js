@@ -21,10 +21,10 @@ function publicCustomer(customer) {
   };
 }
 
-function issueToken(authConfig, customerId) {
+function issueToken(authConfig, customerId, storeId) {
   return {
     accessToken: jwt.sign(
-      {},
+      { sid: String(storeId) },
       authConfig.customerJwtSecret,
       {
         algorithm: 'HS256',
@@ -49,7 +49,7 @@ async function register(pool, input) {
   return publicCustomer(customer);
 }
 
-async function login(pool, authConfig, { email, password }) {
+async function login(pool, authConfig, storeId, { email, password }) {
   const customer = await customersRepository.getCustomerCredentialsByEmail(pool, email);
   const passwordMatches = await bcrypt.compare(
     password,
@@ -60,10 +60,10 @@ async function login(pool, authConfig, { email, password }) {
     throw invalidCredentials;
   }
 
-  return issueToken(authConfig, customer.customer_id);
+  return issueToken(authConfig, customer.customer_id, storeId);
 }
 
-async function authenticate(pool, authConfig, token) {
+async function authenticate(pool, authConfig, token, storeId) {
   let claims;
 
   try {
@@ -79,7 +79,8 @@ async function authenticate(pool, authConfig, token) {
   if (
     typeof claims !== 'object' ||
     typeof claims.sub !== 'string' ||
-    !/^[1-9]\d*$/.test(claims.sub)
+    !/^[1-9]\d*$/.test(claims.sub) ||
+    claims.sid !== String(storeId)
   ) {
     return null;
   }

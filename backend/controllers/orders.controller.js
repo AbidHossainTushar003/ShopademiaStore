@@ -16,6 +16,7 @@ function createOrdersController(pool) {
       const result = await ordersService.checkout(
         pool,
         request.customer.id,
+        request.store.store_id,
         idempotencyKey,
         shipping,
       );
@@ -29,6 +30,7 @@ function createOrdersController(pool) {
       const result = await ordersService.listCustomerOrders(
         pool,
         request.customer.id,
+        request.store.store_id,
         query,
       );
       return response.status(200).json({ success: true, ...result });
@@ -40,6 +42,7 @@ function createOrdersController(pool) {
       const order = await ordersService.getCustomerOrder(
         pool,
         request.customer.id,
+        request.store.store_id,
         orderId,
       );
       return order

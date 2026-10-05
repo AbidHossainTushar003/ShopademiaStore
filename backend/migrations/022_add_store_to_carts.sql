@@ -1,0 +1,2 @@
+ALTER TABLE carts
+  ADD COLUMN store_id BIGINT UNSIGNED NULL AFTER cart_id;

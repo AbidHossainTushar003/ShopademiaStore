@@ -37,6 +37,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON shopademia.cart_items TO 'shopademia_app
 GRANT SELECT, INSERT, UPDATE ON shopademia.orders TO 'shopademia_app'@'localhost';
 GRANT SELECT, INSERT ON shopademia.order_items TO 'shopademia_app'@'localhost';
 GRANT SELECT, INSERT, UPDATE ON shopademia.payments TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON shopademia.stores TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT, DELETE ON shopademia.store_admins TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON shopademia.store_products TO 'shopademia_app'@'localhost';
 ```
 
 If the API connects from a different host, replace `localhost` with the narrowest appropriate host restriction. Use the migration account only for schema migrations, and never use `root` from the application.
@@ -77,11 +80,42 @@ Cart endpoints require a customer bearer token: `GET /api/v1/cart`, `POST /api/v
 
 ## Checkout and orders
 
-`POST /api/v1/checkout` requires a customer bearer token, a shipping JSON object (`recipientName`, `phone`, `addressLine1`, `city`, `region`, `postalCode`, `countryCode`, optional `addressLine2`), and an `Idempotency-Key` header of 16–128 safe characters. The API locks and revalidates the authenticated customer's cart, reloads current prices, verifies active products and available stock, and then creates an order with customer identity, shipping, and immutable item snapshots plus a pending payment record while decrementing inventory and clearing the cart in one transaction. Retrying with the same customer and key returns the original order. Mixed-currency carts are rejected because currency conversion is not part of this phase.
+`POST /api/v1/checkout` requires a customer bearer token, a shipping JSON object (`recipientName`, `phone`, `addressLine1`, `city`, `region`, `postalCode`, `countryCode`, optional `addressLine2`), and an `Idempotency-Key` header of 16–128 safe characters. The API locks and revalidates the authenticated customer's store cart, reloads current prices, verifies active products and available stock, and then creates an order with customer identity, shipping, and immutable item snapshots plus a pending payment record while decrementing inventory and clearing the cart in one transaction. Retrying with the same customer, store, and key returns the original order. Mixed-currency carts are rejected because currency conversion is not part of this phase.
 
-Customers can list and view only their own orders with `GET /api/v1/orders` and `GET /api/v1/orders/:orderId`. Admins with the `admin` or `super_admin` role can list/view orders under `/api/v1/admin/orders`, update order status with `PATCH /api/v1/admin/orders/:orderId/status`, and record payment status with `PATCH /api/v1/admin/orders/:orderId/payment-status`. Order transitions are pending→confirmed/cancelled, confirmed→processing/cancelled, processing→shipped/cancelled, and shipped→delivered. Payment transitions are pending→paid/failed and failed→pending; cancelling an unpaid order also marks its payment cancelled. Cancelling an unpaid order restores its inventory in the same transaction; paid orders cannot be cancelled via this API. Payment status is recorded without a payment gateway.
+Customers can list and view only their own orders for the active store with `GET /api/v1/orders` and `GET /api/v1/orders/:orderId`. Store-assigned admins and super-admins use `/api/v1/admin/stores/:storeId/orders` to list/view orders, update order status at `PATCH /api/v1/admin/stores/:storeId/orders/:orderId/status`, and record payment status at `PATCH /api/v1/admin/stores/:storeId/orders/:orderId/payment-status`. The selected store ID is only a selector: the server checks the admin's store assignment before every query. Order transitions are pending→confirmed/cancelled, confirmed→processing/cancelled, processing→shipped/cancelled, and shipped→delivered. Payment transitions are pending→paid/failed and failed→pending; cancelling an unpaid order also marks its payment cancelled. Cancelling an unpaid order restores its inventory in the same transaction; paid orders cannot be cancelled via this API. Payment status is recorded without a payment gateway.
 
-Admin catalog writes are under `/api/v1/admin/products` and `/api/v1/admin/categories`, including product status, inventory, and image operations. Every route in that admin catalog router requires an active admin token and a database-loaded `admin` or `super_admin` role. Writes use transactions and append audit records with request IDs and small before/after summaries. Duplicate unique values return 409. Categories are soft-deleted only when they have no products or child categories.
+## Multi-store operation
+
+Customer accounts are shared central identities (email remains globally unique); a customer can use the same account in different stores. Registration and login require that store's `X-Store-Key`. Customer access tokens contain a signed store claim, and a token issued by one store is rejected in every other store. Customers with tokens issued before this phase must sign in again to get a store-bound token. Carts and orders are scoped to both customer and store. Product records, inventory, prices, and categories remain central and are not copied per store.
+
+Public catalog, customer, cart, checkout, order, and product-image requests require an active store credential. Public product/category results and product images also require a visible `store_products` mapping. Store admins can change visibility only for stores to which they are assigned. Central product/category management and all store/key/assignment administration require `super_admin`. Store-scoped admin order paths check the selected store against the administrator's assignments on the server. Health endpoints and admin authentication remain outside the store-key boundary. `ALLOWED_ORIGINS` continues to configure the admin API; each store's own origin allow-list governs its storefront API CORS responses.
+
+The super-admin endpoints are:
+
+- `GET/POST /api/v1/admin/stores` and `GET/PATCH /api/v1/admin/stores/:storeId`.
+- `GET /api/v1/admin/stores/:storeId/admins` lists assigned active store admins.
+- `PATCH /api/v1/admin/stores/:storeId/status` with `active` or `inactive`.
+- `POST /api/v1/admin/stores/:storeId/keys/rotate` and `DELETE /api/v1/admin/stores/:storeId/keys/current`.
+- `PUT/DELETE /api/v1/admin/stores/:storeId/admins/:adminId` to assign/revoke a store-level admin.
+- `PUT /api/v1/admin/stores/:storeId/products/:productId/visibility` with `visible` or `hidden`; store admins may change this only for their assigned store.
+
+Store creation and key rotation return a cryptographically generated `storeKey` once. Store credentials are stored only as SHA-256 hashes; never save the returned value in source control or logs. Newly created stores start inactive. The default store is ID `1`, starts inactive with no key and no allowed origins, and has existing products mapped visible after the approved migration. Configure its origins, rotate a key, then activate it. Deactivation and key revocation immediately prevent use.
+
+### Phase 11 database migration safety
+
+The Phase 11 migrations add stores, visibility and admin mappings, then assign existing carts and orders to the default store and make existing products visible there. The migration runner refuses all pending Phase 11 migrations unless `STORE_DATA_BACKFILL_APPROVED=I_HAVE_VERIFIED_BACKUP` is set. Before setting that flag, take and verify a restorable database backup and obtain explicit approval for the existing-row backfill. For example, use your database provider's verified snapshot/restore procedure or a protected `mysqldump --single-transaction`; keep the backup outside the repository.
+
+The runner checks that cart/order/product row counts remain unchanged, that no cart/order remains unassigned, and that each existing product has a default-store mapping. It rolls back a backfill transaction if those checks fail. The schema changes themselves use MySQL DDL and are not transactionally reversible; retain the verified backup. Do not set the approval variable until you are ready to apply the migrations:
+
+```powershell
+$env:STORE_DATA_BACKFILL_APPROVED = 'I_HAVE_VERIFIED_BACKUP'
+npm run migrate
+Remove-Item Env:STORE_DATA_BACKFILL_APPROVED
+```
+
+No Phase 11 migrations have been applied by this implementation task.
+
+Admin catalog writes are under `/api/v1/admin/products` and `/api/v1/admin/categories`, including product status, inventory, and image operations. These central catalog routes require an active `super_admin` token. Store admins can only change visibility mappings for stores to which they are assigned. Writes use transactions and append audit records with request IDs and small before/after summaries. Duplicate unique values return 409. Categories are soft-deleted only when they have no products or child categories.
 
 Development product images are accepted as JPEG, PNG, or WebP only after checking file signature, declared MIME type, and extension. Uploads are limited to five files of 5 MB each per request and 20 active images per product. The server generates UUID filenames and serves only the generated files from `/media/products/`; storage is under the ignored `backend/storage/product-images/` directory. This local filesystem storage is for development, not a multi-instance production deployment.
 

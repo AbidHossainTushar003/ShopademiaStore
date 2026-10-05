@@ -33,6 +33,7 @@ async function withTransaction(pool, callback) {
 
 function availabilityFor(item) {
   if (
+    item.store_visibility !== 'visible' ||
     item.product_deleted_at !== null ||
     item.product_status !== 'active' ||
     item.category_deleted_at !== null ||
@@ -97,9 +98,9 @@ function buildCart(rows) {
   };
 }
 
-async function readCart(connection, customerId) {
-  const cart = await cartRepository.getOrCreateCart(connection, customerId);
-  const items = await cartRepository.listCartItems(connection, cart.cart_id);
+async function readCart(connection, customerId, storeId) {
+  const cart = await cartRepository.getOrCreateCart(connection, customerId, storeId);
+  const items = await cartRepository.listCartItems(connection, cart.cart_id, storeId);
   return buildCart(items);
 }
 
@@ -116,15 +117,19 @@ function availableQuantity(product) {
   return BigInt(product.quantity_on_hand) - BigInt(product.quantity_reserved);
 }
 
-async function getCart(pool, customerId) {
-  return withTransaction(pool, (connection) => readCart(connection, customerId));
+async function getCart(pool, customerId, storeId) {
+  return withTransaction(pool, (connection) => readCart(connection, customerId, storeId));
 }
 
-async function addItem(pool, customerId, { productId, quantity }) {
+async function addItem(pool, customerId, storeId, { productId, quantity }) {
   return withTransaction(pool, async (connection) => {
-    const cart = await cartRepository.getOrCreateCart(connection, customerId);
-    await cartRepository.getCartForUpdate(connection, customerId);
-    const product = await cartRepository.getPurchasableProductForUpdate(connection, productId);
+    const cart = await cartRepository.getOrCreateCart(connection, customerId, storeId);
+    await cartRepository.getCartForUpdate(connection, customerId, storeId);
+    const product = await cartRepository.getPurchasableProductForUpdate(
+      connection,
+      productId,
+      storeId,
+    );
     if (!product) {
       throw httpError(404, 'PRODUCT_NOT_FOUND', 'Product was not found.');
     }
@@ -133,7 +138,7 @@ async function addItem(pool, customerId, { productId, quantity }) {
       throw httpError(409, 'INSUFFICIENT_STOCK', 'Requested quantity is not currently available.');
     }
 
-    const rows = await cartRepository.listCartItems(connection, cart.cart_id);
+    const rows = await cartRepository.listCartItems(connection, cart.cart_id, storeId);
     const currentLine = rows.find((row) => String(row.product_id) === String(productId));
     const nextQuantity = BigInt(currentLine?.quantity || 0) + BigInt(quantity);
     if (nextQuantity > BigInt(maximumQuantity)) {
@@ -148,21 +153,22 @@ async function addItem(pool, customerId, { productId, quantity }) {
 
     await cartRepository.addCartItem(connection, cart.cart_id, product, quantity);
     return {
-      cart: await readCart(connection, customerId),
+      cart: await readCart(connection, customerId, storeId),
       created: !currentLine,
     };
   });
 }
 
-async function updateItem(pool, customerId, itemId, quantity) {
+async function updateItem(pool, customerId, storeId, itemId, quantity) {
   return withTransaction(pool, async (connection) => {
-    const cart = await cartRepository.getCartForUpdate(connection, customerId);
+    const cart = await cartRepository.getCartForUpdate(connection, customerId, storeId);
     if (!cart) {
       return null;
     }
     const item = await cartRepository.getOwnedCartItemForUpdate(
       connection,
       customerId,
+      storeId,
       itemId,
     );
     if (!item) {
@@ -171,6 +177,7 @@ async function updateItem(pool, customerId, itemId, quantity) {
     const product = await cartRepository.getPurchasableProductForUpdate(
       connection,
       item.product_id,
+      storeId,
     );
     if (!product) {
       throw httpError(409, 'PRODUCT_UNAVAILABLE', 'This product is not currently available.');
@@ -179,25 +186,25 @@ async function updateItem(pool, customerId, itemId, quantity) {
       throw httpError(409, 'INSUFFICIENT_STOCK', 'Requested quantity is not currently available.');
     }
     await cartRepository.updateCartItemQuantity(connection, itemId, quantity);
-    return readCart(connection, customerId);
+    return readCart(connection, customerId, storeId);
   });
 }
 
-async function removeItem(pool, customerId, itemId) {
+async function removeItem(pool, customerId, storeId, itemId) {
   return withTransaction(pool, async (connection) => {
-    const cart = await cartRepository.getCartForUpdate(connection, customerId);
+    const cart = await cartRepository.getCartForUpdate(connection, customerId, storeId);
     if (!cart) {
       return false;
     }
-    return cartRepository.removeOwnedCartItem(connection, customerId, itemId);
+    return cartRepository.removeOwnedCartItem(connection, customerId, storeId, itemId);
   });
 }
 
-async function clearCart(pool, customerId) {
+async function clearCart(pool, customerId, storeId) {
   return withTransaction(pool, async (connection) => {
-    const cart = await cartRepository.getCartForUpdate(connection, customerId);
+    const cart = await cartRepository.getCartForUpdate(connection, customerId, storeId);
     if (cart) {
-      await cartRepository.clearCart(connection, customerId);
+      await cartRepository.clearCart(connection, customerId, storeId);
     }
   });
 }

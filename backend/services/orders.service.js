@@ -92,9 +92,13 @@ function publicOrder(order, { includeItems = true, includeShipping = true } = {}
   return result;
 }
 
-async function checkout(pool, customerId, idempotencyKey, shippingSnapshot) {
+async function checkout(pool, customerId, storeId, idempotencyKey, shippingSnapshot) {
   return withTransaction(pool, async (connection) => {
-    const cart = await ordersRepository.getCustomerCartForUpdate(connection, customerId);
+    const cart = await ordersRepository.getCustomerCartForUpdate(
+      connection,
+      customerId,
+      storeId,
+    );
     if (!cart) {
       throw httpError(409, 'CART_EMPTY', 'The cart has no items to check out.');
     }
@@ -102,6 +106,7 @@ async function checkout(pool, customerId, idempotencyKey, shippingSnapshot) {
     const existingOrderId = await ordersRepository.getOrderIdByIdempotencyKey(
       connection,
       customerId,
+      storeId,
       idempotencyKey,
     );
     if (existingOrderId) {
@@ -109,6 +114,7 @@ async function checkout(pool, customerId, idempotencyKey, shippingSnapshot) {
         connection,
         existingOrderId,
         customerId,
+        storeId,
       );
       return { order: publicOrder(existing), created: false };
     }
@@ -136,6 +142,7 @@ async function checkout(pool, customerId, idempotencyKey, shippingSnapshot) {
       const product = await ordersRepository.getCheckoutProductForUpdate(
         connection,
         cartItem.product_id,
+        storeId,
       );
       if (
         !product ||
@@ -164,6 +171,7 @@ async function checkout(pool, customerId, idempotencyKey, shippingSnapshot) {
     const total = totalMinor.toString();
     const orderId = await ordersRepository.createOrder(connection, {
       customerId,
+      storeId,
       customerEmail: customer.email,
       customerName: customer.display_name,
       orderNumber: `SH-${randomBytes(16).toString('hex')}`,
@@ -187,14 +195,19 @@ async function checkout(pool, customerId, idempotencyKey, shippingSnapshot) {
 
     await ordersRepository.createPayment(connection, orderId, total, currencyCode);
     await ordersRepository.clearCartItems(connection, cart.cart_id);
-    const order = await ordersRepository.getOrderById(connection, orderId, customerId);
+    const order = await ordersRepository.getOrderById(
+      connection,
+      orderId,
+      customerId,
+      storeId,
+    );
     return { order: publicOrder(order), created: true };
   });
 }
 
-async function listCustomerOrders(pool, customerId, query) {
+async function listCustomerOrders(pool, customerId, storeId, query) {
   return withTransaction(pool, async (connection) => {
-    const result = await ordersRepository.listCustomerOrders(connection, customerId, {
+    const result = await ordersRepository.listCustomerOrders(connection, customerId, storeId, {
       limit: query.limit,
       offset: (query.page - 1) * query.limit,
     });
@@ -213,16 +226,21 @@ async function listCustomerOrders(pool, customerId, query) {
   });
 }
 
-async function getCustomerOrder(pool, customerId, orderId) {
+async function getCustomerOrder(pool, customerId, storeId, orderId) {
   return withTransaction(pool, async (connection) => {
-    const order = await ordersRepository.getOrderById(connection, orderId, customerId);
+    const order = await ordersRepository.getOrderById(
+      connection,
+      orderId,
+      customerId,
+      storeId,
+    );
     return order ? publicOrder(order) : null;
   });
 }
 
-async function listAdminOrders(pool, query) {
+async function listAdminOrders(pool, storeId, query) {
   return withTransaction(pool, async (connection) => {
-    const result = await ordersRepository.listAdminOrders(connection, {
+    const result = await ordersRepository.listAdminOrders(connection, storeId, {
       ...query,
       offset: (query.page - 1) * query.limit,
     });
@@ -241,16 +259,16 @@ async function listAdminOrders(pool, query) {
   });
 }
 
-async function getAdminOrder(pool, orderId) {
+async function getAdminOrder(pool, storeId, orderId) {
   return withTransaction(pool, async (connection) => {
-    const order = await ordersRepository.getOrderById(connection, orderId);
+    const order = await ordersRepository.getOrderById(connection, orderId, null, storeId);
     return order ? publicOrder(order) : null;
   });
 }
 
-async function updateAdminOrderStatus(pool, admin, requestId, orderId, nextStatus) {
+async function updateAdminOrderStatus(pool, admin, requestId, storeId, orderId, nextStatus) {
   return withTransaction(pool, async (connection) => {
-    const before = await ordersRepository.getOrderForUpdate(connection, orderId);
+    const before = await ordersRepository.getOrderForUpdate(connection, orderId, storeId);
     if (!before) {
       return null;
     }
@@ -261,23 +279,23 @@ async function updateAdminOrderStatus(pool, admin, requestId, orderId, nextStatu
       if (before.payment_status === 'paid') {
         throw httpError(409, 'PAID_ORDER_CANNOT_BE_CANCELLED', 'A paid order cannot be cancelled through this operation.');
       }
-      const items = await ordersRepository.listOrderItems(connection, orderId);
+      const items = await ordersRepository.listOrderItems(connection, orderId, storeId);
       for (const item of items) {
         await ordersRepository.restoreInventory(connection, item.product_id, item.quantity);
       }
-      await ordersRepository.updatePaymentStatus(connection, orderId, 'cancelled');
+      await ordersRepository.updatePaymentStatus(connection, storeId, orderId, 'cancelled');
     }
-    await ordersRepository.updateOrderStatus(connection, orderId, nextStatus);
-    const after = await ordersRepository.getOrderForUpdate(connection, orderId);
+    await ordersRepository.updateOrderStatus(connection, storeId, orderId, nextStatus);
+    const after = await ordersRepository.getOrderForUpdate(connection, orderId, storeId);
     await auditOrderChange(connection, admin, requestId, 'order.status_changed', before, after);
-    const order = await ordersRepository.getOrderById(connection, orderId);
+    const order = await ordersRepository.getOrderById(connection, orderId, null, storeId);
     return publicOrder(order);
   });
 }
 
-async function updateAdminPaymentStatus(pool, admin, requestId, orderId, nextStatus) {
+async function updateAdminPaymentStatus(pool, admin, requestId, storeId, orderId, nextStatus) {
   return withTransaction(pool, async (connection) => {
-    const before = await ordersRepository.getOrderForUpdate(connection, orderId);
+    const before = await ordersRepository.getOrderForUpdate(connection, orderId, storeId);
     if (!before) {
       return null;
     }
@@ -287,10 +305,10 @@ async function updateAdminPaymentStatus(pool, admin, requestId, orderId, nextSta
     if (before.order_status === 'cancelled') {
       throw httpError(409, 'CANCELLED_ORDER_PAYMENT', 'A cancelled order payment cannot be changed.');
     }
-    await ordersRepository.updatePaymentStatus(connection, orderId, nextStatus);
-    const after = await ordersRepository.getOrderForUpdate(connection, orderId);
+    await ordersRepository.updatePaymentStatus(connection, storeId, orderId, nextStatus);
+    const after = await ordersRepository.getOrderForUpdate(connection, orderId, storeId);
     await auditOrderChange(connection, admin, requestId, 'order.payment_status_changed', before, after);
-    const order = await ordersRepository.getOrderById(connection, orderId);
+    const order = await ordersRepository.getOrderById(connection, orderId, null, storeId);
     return publicOrder(order);
   });
 }

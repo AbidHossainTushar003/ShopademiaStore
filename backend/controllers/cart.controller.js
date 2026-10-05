@@ -10,14 +10,19 @@ function createCartController(pool) {
   return {
     async getCart(request, response) {
       validateCartQuery(request.query);
-      const cart = await cartService.getCart(pool, request.customer.id);
+      const cart = await cartService.getCart(pool, request.customer.id, request.store.store_id);
       return response.status(200).json({ success: true, data: cart });
     },
 
     async addItem(request, response) {
       validateCartQuery(request.query);
       const input = validateAddItemBody(request.body);
-      const result = await cartService.addItem(pool, request.customer.id, input);
+      const result = await cartService.addItem(
+        pool,
+        request.customer.id,
+        request.store.store_id,
+        input,
+      );
       return response
         .status(result.created ? 201 : 200)
         .json({ success: true, data: result.cart });
@@ -30,6 +35,7 @@ function createCartController(pool) {
       const cart = await cartService.updateItem(
         pool,
         request.customer.id,
+        request.store.store_id,
         itemId,
         quantity,
       );
@@ -47,6 +53,7 @@ function createCartController(pool) {
       const removed = await cartService.removeItem(
         pool,
         request.customer.id,
+        request.store.store_id,
         itemId,
       );
       return removed
@@ -59,7 +66,7 @@ function createCartController(pool) {
 
     async clearCart(request, response) {
       validateCartQuery(request.query);
-      await cartService.clearCart(pool, request.customer.id);
+      await cartService.clearCart(pool, request.customer.id, request.store.store_id);
       return response.status(204).end();
     },
   };

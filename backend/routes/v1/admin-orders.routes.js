@@ -1,6 +1,7 @@
 const express = require('express');
 const createAdminAuthentication = require('../../middleware/admin-authentication');
 const requireRoles = require('../../middleware/require-roles');
+const { authorizeStoreRequest } = require('../../middleware/store-context');
 const createAdminOrdersController = require('../../controllers/admin-orders.controller');
 
 function createAdminOrdersRoutes(pool, authConfig) {
@@ -8,10 +9,23 @@ function createAdminOrdersRoutes(pool, authConfig) {
   const controller = createAdminOrdersController(pool);
   const authenticate = createAdminAuthentication(pool, authConfig);
   const authorize = requireRoles('super_admin', 'admin');
-  router.get('/orders', authenticate, authorize, controller.list);
-  router.get('/orders/:orderId', authenticate, authorize, controller.get);
-  router.patch('/orders/:orderId/status', authenticate, authorize, controller.updateOrderStatus);
-  router.patch('/orders/:orderId/payment-status', authenticate, authorize, controller.updatePaymentStatus);
+  const storeAccess = authorizeStoreRequest(pool);
+  router.get('/stores/:storeId/orders', authenticate, authorize, storeAccess, controller.list);
+  router.get('/stores/:storeId/orders/:orderId', authenticate, authorize, storeAccess, controller.get);
+  router.patch(
+    '/stores/:storeId/orders/:orderId/status',
+    authenticate,
+    authorize,
+    storeAccess,
+    controller.updateOrderStatus,
+  );
+  router.patch(
+    '/stores/:storeId/orders/:orderId/payment-status',
+    authenticate,
+    authorize,
+    storeAccess,
+    controller.updatePaymentStatus,
+  );
   return router;
 }
 

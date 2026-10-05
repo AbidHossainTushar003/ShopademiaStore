@@ -10,7 +10,7 @@ function createAdminCatalogRoutes(pool, authConfig) {
 
   router.use(
     createAdminAuthentication(pool, authConfig),
-    requireRoles('super_admin', 'admin'),
+    requireRoles('super_admin'),
   );
 
   router.get('/products', controller.listProducts);

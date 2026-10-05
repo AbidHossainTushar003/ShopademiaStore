@@ -8,14 +8,14 @@ const {
 
 function createCatalogController(pool) {
   return {
-    async home(_request, response) {
-      const data = await catalogService.getStorefrontHome(pool);
+    async home(request, response) {
+      const data = await catalogService.getStorefrontHome(pool, request.store.store_id);
       return response.status(200).json({ success: true, data });
     },
 
     async listProducts(request, response) {
       const query = validateProductListQuery(request.query);
-      const result = await catalogService.listProducts(pool, query);
+      const result = await catalogService.listProducts(pool, request.store.store_id, query);
       return response.status(200).json({
         success: true,
         data: result.data,
@@ -25,7 +25,7 @@ function createCatalogController(pool) {
 
     async getProduct(request, response) {
       const identifier = validateProductIdentifier(request.params.identifier);
-      const product = await catalogService.getProduct(pool, identifier);
+      const product = await catalogService.getProduct(pool, request.store.store_id, identifier);
 
       if (!product) {
         return response.status(404).json({
@@ -39,7 +39,7 @@ function createCatalogController(pool) {
 
     async listCategories(request, response) {
       const query = validateCategoryListQuery(request.query);
-      const result = await catalogService.listCategories(pool, query);
+      const result = await catalogService.listCategories(pool, request.store.store_id, query);
       return response.status(200).json({
         success: true,
         data: result.data,
@@ -49,7 +49,11 @@ function createCatalogController(pool) {
 
     async getCategory(request, response) {
       const categoryId = validateCategoryId(request.params.id);
-      const category = await catalogService.getCategory(pool, categoryId);
+      const category = await catalogService.getCategory(
+        pool,
+        request.store.store_id,
+        categoryId,
+      );
 
       if (!category) {
         return response.status(404).json({

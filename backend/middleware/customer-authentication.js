@@ -20,10 +20,12 @@ function createCustomerAuthentication(pool, authConfig) {
     }
 
     try {
+      response.setHeader('Cache-Control', 'private, no-store');
       const customer = await customerAuthService.authenticate(
         pool,
         authConfig,
         authorization.slice('Bearer '.length),
+        request.store.store_id,
       );
 
       if (!customer) {

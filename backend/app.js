@@ -14,7 +14,9 @@ const createCustomerRoutes = require('./routes/v1/customers.routes');
 const createCartRoutes = require('./routes/v1/cart.routes');
 const createOrdersRoutes = require('./routes/v1/orders.routes');
 const createAdminOrdersRoutes = require('./routes/v1/admin-orders.routes');
+const createAdminStoresRoutes = require('./routes/v1/admin-stores.routes');
 const requestId = require('./middleware/request-id');
+const { authorizeStoreImage, createStoreContext } = require('./middleware/store-context');
 
 function createApp(config, pool) {
   if (!config.auth) {
@@ -25,12 +27,18 @@ function createApp(config, pool) {
 
   app.disable('x-powered-by');
   app.use(helmet());
-  app.use(cors({
-    origin(origin, callback) {
-      callback(null, !origin || config.allowedOrigins.includes(origin));
-    },
-  }));
   app.use(requestId);
+  app.use(createStoreContext(pool));
+  app.use(cors((request, callback) => {
+    const origin = request.get('origin');
+    const allowed = request.store
+      ? request.store.allowed_origins.includes(origin)
+      : request.storeScopedRequest
+        ? request.storeOriginAllowed
+        : config.allowedOrigins.includes(origin);
+    callback(null, { origin: origin && allowed ? origin : false });
+  }));
+  app.use(authorizeStoreImage(pool));
   app.use(express.json({ limit: '100kb' }));
   app.use('/media/products', express.static(
     path.resolve(__dirname, 'storage', 'product-images'),
@@ -45,6 +53,7 @@ function createApp(config, pool) {
   app.use('/api/v1', createReadinessRoutes(pool));
   app.use('/api/v1', createCatalogRoutes(pool));
   app.use('/api/v1/admin/auth', createAdminAuthRoutes(pool, config.auth));
+  app.use('/api/v1/admin', createAdminStoresRoutes(pool, config.auth));
   app.use('/api/v1/admin', createAdminOrdersRoutes(pool, config.auth));
   app.use('/api/v1/admin', createAdminCatalogRoutes(pool, config.auth));
   app.use('/api/v1/auth', createCustomerAuthRoutes(pool, config.auth));

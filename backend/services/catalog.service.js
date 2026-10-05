@@ -42,8 +42,8 @@ function toPublicCategory(category) {
   };
 }
 
-async function listProducts(pool, filters) {
-  const result = await catalogRepository.listPublicProducts(pool, filters);
+async function listProducts(pool, storeId, filters) {
+  const result = await catalogRepository.listPublicProducts(pool, storeId, filters);
   const imageRows = await catalogRepository.listPublicProductImages(
     pool,
     result.rows.map((product) => product.product_id),
@@ -55,10 +55,10 @@ async function listProducts(pool, filters) {
   };
 }
 
-async function getStorefrontHome(pool) {
+async function getStorefrontHome(pool, storeId) {
   const [categories, products] = await Promise.all([
-    listCategories(pool, { page: 1, limit: 8 }),
-    listProducts(pool, {
+    listCategories(pool, storeId, { page: 1, limit: 8 }),
+    listProducts(pool, storeId, {
       page: 1,
       limit: 8,
       sort: 'newest',
@@ -71,10 +71,10 @@ async function getStorefrontHome(pool) {
   };
 }
 
-async function getProduct(pool, identifier) {
+async function getProduct(pool, storeId, identifier) {
   const product = identifier.type === 'id'
-    ? await catalogRepository.getPublicProductById(pool, identifier.value)
-    : await catalogRepository.getPublicProductBySlug(pool, identifier.value);
+    ? await catalogRepository.getPublicProductById(pool, storeId, identifier.value)
+    : await catalogRepository.getPublicProductBySlug(pool, storeId, identifier.value);
 
   if (!product) {
     return null;
@@ -84,8 +84,8 @@ async function getProduct(pool, identifier) {
   return attachImages([product], images)[0];
 }
 
-async function listCategories(pool, { page, limit }) {
-  const result = await catalogRepository.listPublicCategories(pool, {
+async function listCategories(pool, storeId, { page, limit }) {
+  const result = await catalogRepository.listPublicCategories(pool, storeId, {
     limit,
     offset: (page - 1) * limit,
   });
@@ -96,8 +96,8 @@ async function listCategories(pool, { page, limit }) {
   };
 }
 
-async function getCategory(pool, categoryId) {
-  const category = await catalogRepository.getPublicCategoryById(pool, categoryId);
+async function getCategory(pool, storeId, categoryId) {
+  const category = await catalogRepository.getPublicCategoryById(pool, storeId, categoryId);
   return category ? toPublicCategory(category) : null;
 }
 
