@@ -3,12 +3,15 @@ const createAdminAuthentication = require('../../middleware/admin-authentication
 const uploadProductImages = require('../../middleware/product-image-upload');
 const requireRoles = require('../../middleware/require-roles');
 const createAdminCatalogController = require('../../controllers/admin-catalog.controller');
+const adminRequestLimit = require('../../middleware/admin-request-limit');
+const limitAdminUploads = require('../../middleware/admin-upload-request-limit');
 
 function createAdminCatalogRoutes(pool, authConfig) {
   const router = express.Router();
   const controller = createAdminCatalogController(pool);
 
   router.use(
+    adminRequestLimit,
     createAdminAuthentication(pool, authConfig),
     requireRoles('super_admin'),
   );
@@ -20,7 +23,12 @@ function createAdminCatalogRoutes(pool, authConfig) {
   router.patch('/products/:productId/status', controller.updateProductStatus);
   router.put('/products/:productId/inventory', controller.setInventory);
   router.patch('/products/:productId/inventory', controller.adjustInventory);
-  router.post('/products/:productId/images', uploadProductImages, controller.uploadImages);
+  router.post(
+    '/products/:productId/images',
+    limitAdminUploads,
+    uploadProductImages,
+    controller.uploadImages,
+  );
   router.patch('/products/:productId/images/:imageId', controller.updateImage);
   router.delete('/products/:productId/images/:imageId', controller.removeImage);
 

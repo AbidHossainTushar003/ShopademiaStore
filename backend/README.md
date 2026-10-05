@@ -64,9 +64,11 @@ The public catalog exposes `GET /api/v1/storefront/home`, `GET /api/v1/products`
 
 ## Admin authentication
 
-Set distinct random `ADMIN_JWT_SECRET` and `CUSTOMER_JWT_SECRET` values of at least 32 bytes in `.env`; generate them with a cryptographically secure random generator. Production refuses placeholder secrets. Admin access tokens are HS256 bearer tokens with the `shopademia-admin` audience and a configurable 5–30 minute lifetime. Admin roles and active status are loaded from MySQL for each protected request; role claims from tokens are not trusted. The customer secret/audience are reserved separately for Phase 7.
+Set distinct random `ADMIN_JWT_SECRET` and `CUSTOMER_JWT_SECRET` values of at least 32 bytes in `.env`; generate them with a cryptographically secure random generator. Production refuses placeholders and secrets with low character diversity. Admin access tokens are HS256 bearer tokens with the `shopademia-admin` audience and a configurable 5–30 minute lifetime. Admin roles and active status are loaded from MySQL for each protected request; role claims from tokens are not trusted. The customer secret/audience are separate.
 
-The login route is `POST /api/v1/admin/auth/login`; `GET /api/v1/admin/auth/me` requires an active `admin` or `super_admin` identity. Login attempts have an IP-wide limit and a stricter failed-attempt limit. The rate limiter uses its default in-process store, so limits reset on restart and are not shared across multiple server instances. Login success/failure audit records contain no passwords or tokens.
+The login route is `POST /api/v1/admin/auth/login`; `GET /api/v1/admin/auth/me` requires an active `admin` or `super_admin` identity. Login attempts have an IP-wide limit and a stricter failed-attempt limit. Other admin requests are limited to 120 per minute per IP; image uploads have an additional six-per-minute limit. Customer profile/cart/order requests are limited to 120 per minute per IP, catalog browsing and product images to 120 per minute per IP, and readiness checks to 30 per minute per IP. Registration and login retain their stricter route-specific limits. These limits use the default in-process store, so they reset on restart and are not shared across multiple server instances. Login success/failure audit records contain no passwords or tokens.
+
+Express proxy trust is disabled by default; the API therefore does not trust client-supplied `X-Forwarded-For`. If you deploy behind a reverse proxy, configure Express to trust only the actual proxy address/subnet in your deployment before relying on IP-based rate limits. Do not enable blanket `trust proxy: true`. Deployment proxy/TLS configuration must be verified separately.
 
 ## Customer authentication and profile
 

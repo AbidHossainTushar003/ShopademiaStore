@@ -78,6 +78,23 @@ function requireEnvironmentValue(name, { preserveWhitespace = false } = {}) {
   return preserveWhitespace ? value : trimmedValue;
 }
 
+function hasWeakSecretStructure(secret) {
+  const characters = Array.from(secret);
+  const frequencies = new Map();
+  for (const character of characters) {
+    frequencies.set(character, (frequencies.get(character) || 0) + 1);
+  }
+
+  const entropy = Array.from(frequencies.values()).reduce((sum, frequency) => {
+    const probability = frequency / characters.length;
+    return sum - probability * Math.log2(probability);
+  }, 0);
+
+  return frequencies.size < 12 ||
+    entropy < 3 ||
+    Math.max(...frequencies.values()) / characters.length > 0.25;
+}
+
 function loadConfig({ requireMigrationCredentials = false } = {}) {
   dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
@@ -131,6 +148,16 @@ function loadConfig({ requireMigrationCredentials = false } = {}) {
     ]) {
       if (placeholders.some((placeholder) => secret.toLowerCase().includes(placeholder))) {
         throw new ConfigurationError(`${name} must be replaced with a strong random secret in production.`);
+      }
+    }
+    for (const [name, secret] of [
+      ['ADMIN_JWT_SECRET', adminJwtSecret],
+      ['CUSTOMER_JWT_SECRET', customerJwtSecret],
+    ]) {
+      if (hasWeakSecretStructure(secret)) {
+        throw new ConfigurationError(
+          `${name} must use a cryptographically random value with sufficient character diversity in production.`,
+        );
       }
     }
   }

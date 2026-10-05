@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit').rateLimit;
 const createAdminAuthentication = require('../../middleware/admin-authentication');
 const requireRoles = require('../../middleware/require-roles');
+const adminRequestLimit = require('../../middleware/admin-request-limit');
 const createAdminAuthController = require('../../controllers/admin-auth.controller');
 
 function rateLimitResponse(_request, response) {
@@ -34,10 +35,10 @@ function createAdminAuthRoutes(pool, authConfig) {
     handler: rateLimitResponse,
   });
   const authenticate = createAdminAuthentication(pool, authConfig);
-
   router.post('/login', overallLoginLimit, failedLoginLimit, controller.login);
   router.get(
     '/me',
+    adminRequestLimit,
     authenticate,
     requireRoles('super_admin', 'admin'),
     controller.me,

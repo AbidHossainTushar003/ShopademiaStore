@@ -17,6 +17,7 @@ const createAdminOrdersRoutes = require('./routes/v1/admin-orders.routes');
 const createAdminStoresRoutes = require('./routes/v1/admin-stores.routes');
 const requestId = require('./middleware/request-id');
 const { authorizeStoreImage, createStoreContext } = require('./middleware/store-context');
+const limitPublicMediaRequests = require('./middleware/public-media-request-limit');
 
 function createApp(config, pool) {
   if (!config.auth) {
@@ -26,9 +27,11 @@ function createApp(config, pool) {
   const app = express();
 
   app.disable('x-powered-by');
+  app.set('trust proxy', false);
   app.use(helmet());
   app.use(requestId);
   app.use(createStoreContext(pool));
+  app.use('/media/products', limitPublicMediaRequests);
   app.use(cors((request, callback) => {
     const origin = request.get('origin');
     const allowed = request.store
