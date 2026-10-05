@@ -20,13 +20,18 @@ function createCatalogRoutes(pool) {
       });
     },
   });
+  function setCatalogCachePolicy(_request, response, next) {
+    response.setHeader('Cache-Control', 'private, no-cache, must-revalidate');
+    response.vary('X-Store-Key');
+    response.vary('Origin');
+    return next();
+  }
 
-  router.use(publicReadLimit);
-  router.get('/storefront/home', controller.home);
-  router.get('/products', controller.listProducts);
-  router.get('/products/:identifier', controller.getProduct);
-  router.get('/categories', controller.listCategories);
-  router.get('/categories/:id', controller.getCategory);
+  router.get('/storefront/home', setCatalogCachePolicy, publicReadLimit, controller.home);
+  router.get('/products', setCatalogCachePolicy, publicReadLimit, controller.listProducts);
+  router.get('/products/:identifier', setCatalogCachePolicy, publicReadLimit, controller.getProduct);
+  router.get('/categories', setCatalogCachePolicy, publicReadLimit, controller.listCategories);
+  router.get('/categories/:id', setCatalogCachePolicy, publicReadLimit, controller.getCategory);
 
   return router;
 }

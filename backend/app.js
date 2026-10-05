@@ -31,6 +31,18 @@ function createApp(config, pool) {
   app.use(helmet());
   app.use(requestId);
   app.use(createStoreContext(pool));
+  app.use('/api/v1/admin', (_request, response, next) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    return next();
+  });
+  app.use(['/api/v1/auth', '/api/v1/customers', '/api/v1/cart', '/api/v1/orders'], (
+    _request,
+    response,
+    next,
+  ) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    return next();
+  });
   app.use('/media/products', limitPublicMediaRequests);
   app.use(cors((request, callback) => {
     const origin = request.get('origin');
