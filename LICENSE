@@ -1,1 +1,352 @@
+SHOPADEMIASTORE
+PROPRIETARY COMMERCIAL SOFTWARE LICENSE
+
+Copyright © 2026 ShopademiaStore. All Rights Reserved.
+
+Version 1.0 — Proprietary and Confidential
+
+1. PURPOSE
+
+This Software is proprietary commercial software owned by ShopademiaStore and/or
+its lawful copyright owner ("Owner").
+
+This License governs access to, use of, reproduction of, modification of,
+distribution of, and interaction with the Software and its associated
+proprietary materials.
+
+Except where the Owner provides explicit written authorization, no rights,
+licenses, or permissions are granted to any person or organization.
+
+2. DEFINITIONS
+
+"Software" means the ShopademiaStore software and all associated components,
+including but not limited to:
+
+* Source code and object code
+* Backend services and REST APIs
+* Frontend applications and storefronts
+* Administrative panels and dashboards
+* Database schemas, structures, migrations, and seed data
+* Business logic and application logic
+* Authentication and authorization systems
+* API architecture and integrations
+* Configuration and deployment files
+* Scripts and automation
+* Documentation and technical specifications
+* UI/UX designs and layouts
+* Graphics and visual assets
+* Proprietary algorithms and workflows
+* Tests and testing infrastructure
+* Future versions, updates, and improvements
+
+"Proprietary Materials" means the Software together with its documentation,
+architecture, designs, specifications, database structures, business logic,
+branding, trade secrets, and other materials supplied by the Owner.
+
+"Authorized User" means a person or organization that has received explicit
+written permission from the Owner to access or use the Software.
+
+"Owner" means ShopademiaStore and/or the person or legal entity that owns the
+applicable intellectual property rights.
+
+3. OWNERSHIP
+
+The Software and Proprietary Materials are and shall remain the exclusive
+property of the Owner.
+
+Nothing in this License transfers ownership, copyright, trademark rights,
+trade-secret rights, patent rights, database rights, or any other intellectual
+property rights to any user, customer, developer, contractor, employee, or
+third party.
+
+Access to the repository, source code, application, API, database, deployment
+environment, or documentation does not constitute a transfer of ownership.
+
+4. LIMITED LICENSE
+
+Unless separately agreed in writing, no license is granted.
+
+Where the Owner expressly authorizes a person or organization to use the
+Software, that authorization is limited to the specific purpose, users,
+environment, duration, territory, and scope stated in the written
+authorization.
+
+Any permission not expressly granted in writing is reserved by the Owner.
+
+5. PROHIBITED ACTIVITIES
+
+Without prior written permission from the Owner, no person or organization may:
+
+a. Copy, reproduce, duplicate, or mirror the Software.
+
+b. Modify, alter, adapt, translate, or create derivative works from the
+Software.
+
+c. Redistribute, publish, sublicense, lease, rent, sell, resell, or transfer
+the Software or any portion of it.
+
+d. Make the source code or substantial portions of the source code available
+to the public or to unauthorized third parties.
+
+e. Use the Software or its source code to develop a competing product,
+service, platform, website, application, API, or commercial system.
+
+f. Reuse, reproduce, or substantially replicate the Software's architecture,
+business logic, database structure, API design, workflows, or proprietary
+implementation in another project.
+
+g. Reverse engineer, decompile, disassemble, decode, or otherwise attempt to
+derive source code or underlying ideas from compiled or deployed portions
+of the Software, except where such restriction is prohibited by applicable
+law.
+
+h. Remove, conceal, alter, or bypass copyright notices, proprietary notices,
+license notices, security controls, or access restrictions.
+
+i. Circumvent authentication, authorization, licensing, subscription,
+technical protection, or access-control mechanisms.
+
+j. Use the Software, APIs, database, credentials, or infrastructure for
+unauthorized data extraction, scraping, automated access, or service
+replication.
+
+k. Use confidential information obtained through access to the Software to
+develop or assist a competing system.
+
+6. COMMERCIAL USE
+
+Commercial use of the Software is strictly prohibited unless expressly
+authorized in writing by the Owner.
+
+No person or organization may use the Software to operate a business, provide
+a service, create a SaaS product, offer hosted services, sell products,
+process transactions, or generate revenue without a separate written
+commercial license or agreement.
+
+7. SOURCE CODE
+
+The source code is confidential proprietary information.
+
+Authorized access to source code does not grant permission to:
+
+* Publish it
+* Upload it to another repository
+* Share it through public or private code-hosting platforms
+* Sell or license it
+* Reuse substantial portions of it in another project
+* Provide it to unauthorized developers or organizations
+* Use it to create competing software
+
+Authorized developers, employees, contractors, and service providers may be
+required to execute separate confidentiality, intellectual-property
+assignment, contractor, employment, or non-disclosure agreements.
+
+8. DATABASE AND DATA ARCHITECTURE
+
+The Software's database schema, relationships, migrations, indexes,
+architecture, business rules, data models, API contracts, and related
+technical structures constitute proprietary materials to the extent protected
+by applicable law.
+
+Unauthorized reproduction or substantial replication of these materials is
+prohibited.
+
+This License does not grant any person ownership of customer data, merchant
+data, personal information, transaction records, or other data processed by
+the Software.
+
+9. API AND INTEGRATION RESTRICTIONS
+
+Access to an API does not grant ownership of the API or permission to
+reproduce the API implementation.
+
+Unless expressly authorized in writing, no person may:
+
+* Replicate the API implementation
+* Clone the API architecture
+* Build a competing API based on proprietary implementation details
+* Circumvent authentication or authorization
+* Extract proprietary business logic
+* Abuse or overload API infrastructure
+* Use private or administrative endpoints
+* Share API credentials or access tokens
+* Use undocumented endpoints for unauthorized purposes
+
+Public API documentation, where provided, may be subject to separate terms.
+
+10. ADMINISTRATIVE SYSTEMS
+
+Administrative interfaces, dashboards, management tools, internal endpoints,
+administrative APIs, and related functionality are restricted to authorized
+users.
+
+Administrative credentials must not be shared, transferred, published, or
+used by unauthorized persons.
+
+The Owner may revoke administrative access at any time where permitted by
+applicable agreements or law.
+
+11. SECURITY
+
+No person may intentionally bypass, disable, defeat, or interfere with
+security controls implemented by the Software.
+
+This includes authentication, authorization, role-based access control,
+rate limiting, token protection, API keys, session controls, audit mechanisms,
+or other technical safeguards.
+
+Authorized security testing must be performed only within the scope and
+conditions approved by the Owner.
+
+12. CONFIDENTIALITY
+
+Non-public portions of the Software and Proprietary Materials may constitute
+confidential information and trade secrets.
+
+Authorized users must take reasonable measures to prevent unauthorized access,
+disclosure, copying, or distribution.
+
+Nothing in this section prevents disclosures required by applicable law,
+provided that the authorized user, where legally permitted, gives the Owner
+reasonable prior notice.
+
+13. THIRD-PARTY COMPONENTS
+
+The Software may contain or interact with third-party software, libraries,
+frameworks, services, APIs, fonts, icons, or other materials that are subject
+to their own licenses.
+
+Such third-party components remain subject to their respective licenses.
+
+Nothing in this License purports to override rights granted by applicable
+third-party licenses.
+
+14. TRADEMARKS AND BRANDING
+
+"Shopademia", "ShopademiaStore", associated logos, names, visual identities,
+product names, domain names, slogans, and other branding elements are not
+licensed under this License unless expressly stated otherwise.
+
+No person may use the Owner's trademarks or branding in a manner that implies
+ownership, sponsorship, partnership, endorsement, or authorization without
+prior written permission.
+
+15. CONTRIBUTIONS
+
+Unless a separate written agreement states otherwise, submitting code,
+documentation, designs, fixes, or other contributions to the Software does
+not automatically grant the contributor ownership of the Software.
+
+Contributors may be required to enter into a separate intellectual-property
+assignment or contribution agreement.
+
+16. EMPLOYEES AND CONTRACTORS
+
+Employees, contractors, freelancers, agencies, interns, consultants, and
+other persons receiving access to the Software may receive only the rights
+necessary to perform their authorized responsibilities.
+
+Such access does not transfer ownership.
+
+The Owner may require separate agreements governing confidentiality,
+intellectual-property ownership, work-for-hire arrangements, assignment of
+rights, security, and permitted use.
+
+17. TERMINATION
+
+Any permission granted under a separate written agreement may terminate in
+accordance with that agreement.
+
+Upon termination or revocation of authorization, the affected party must,
+subject to applicable law and any continuing contractual obligations:
+
+* Stop using the Software
+* Stop accessing restricted systems
+* Stop distributing copies
+* Return or securely destroy confidential materials as required
+* Remove unauthorized copies from systems under its control
+
+Sections concerning ownership, intellectual property, confidentiality,
+restrictions, liability, and other provisions intended to survive termination
+shall continue to apply to the extent permitted by applicable law.
+
+18. NO WARRANTY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE AND
+PROPRIETARY MATERIALS ARE PROVIDED "AS IS" AND "AS AVAILABLE".
+
+THE OWNER MAKES NO EXPRESS OR IMPLIED WARRANTY REGARDING MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AVAILABILITY,
+PERFORMANCE, SECURITY, OR ERROR-FREE OPERATION, EXCEPT WHERE SUCH WARRANTIES
+CANNOT LAWFULLY BE DISCLAIMED.
+
+19. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE OWNER SHALL NOT BE
+LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR
+PUNITIVE DAMAGES ARISING FROM OR RELATED TO THE SOFTWARE OR ITS USE.
+
+NOTHING IN THIS SECTION EXCLUDES LIABILITY THAT CANNOT LAWFULLY BE EXCLUDED
+OR LIMITED.
+
+20. ENFORCEMENT
+
+Unauthorized use, reproduction, distribution, disclosure, or exploitation of
+the Software may constitute infringement of intellectual-property rights,
+breach of contract, breach of confidentiality, or other unlawful conduct,
+depending on the circumstances and applicable law.
+
+The Owner reserves all rights and remedies available under applicable law.
+
+21. NO IMPLIED RIGHTS
+
+No license, permission, authorization, ownership interest, or other right is
+granted by implication, estoppel, exhaustion, repository access, possession
+of a copy, access to documentation, or access to a deployed version.
+
+Only rights expressly granted in writing by the Owner are granted.
+
+22. CHANGES TO THE SOFTWARE
+
+The Owner may modify, update, replace, suspend, discontinue, or create new
+versions of the Software at its discretion, subject to applicable contractual
+obligations.
+
+A new version may be distributed under a different license or additional
+terms.
+
+23. GOVERNING LAW
+
+The governing law, jurisdiction, dispute-resolution procedure, and venue
+applicable to a particular commercial authorization should be established in
+the relevant written agreement between the Owner and the Authorized User.
+
+This License does not by itself identify a specific jurisdiction unless the
+Owner completes and adopts the jurisdiction provisions below.
+
+24. OWNER INFORMATION
+
+Software:
+ShopademiaStore
+
+Copyright Owner:
+Shopademia
+
+Website:
+https://shopademia.store
+
+Contact:
+shopademia.official@gmail.com
+
+Effective Date:
+05/10/2026
+
+25. RESERVATION OF RIGHTS
+
+ALL RIGHTS NOT EXPRESSLY GRANTED ARE RESERVED.
+
+Unauthorized access, use, copying, modification, distribution, reproduction,
+commercial exploitation, or creation of derivative works is prohibited.
+
+Copyright © 2026 ShopademiaStore. All Rights Reserved.
 
