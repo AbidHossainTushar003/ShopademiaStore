@@ -8,6 +8,11 @@ const {
 
 function createCatalogController(pool) {
   return {
+    async home(_request, response) {
+      const data = await catalogService.getStorefrontHome(pool);
+      return response.status(200).json({ success: true, data });
+    },
+
     async listProducts(request, response) {
       const query = validateProductListQuery(request.query);
       const result = await catalogService.listProducts(pool, query);

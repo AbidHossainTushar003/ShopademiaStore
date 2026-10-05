@@ -7,7 +7,12 @@ const productSortSql = Object.freeze({
 });
 
 const productColumns = `p.product_id, p.category_id, c.name AS category_name, c.slug AS category_slug,
-  p.name, p.slug, p.description, p.price_minor, p.currency_code`;
+  p.name, p.slug, p.description, p.price_minor, p.currency_code,
+  CASE
+    WHEN COALESCE(i.quantity_on_hand, 0) > COALESCE(i.quantity_reserved, 0)
+    THEN 'in_stock'
+    ELSE 'out_of_stock'
+  END AS availability`;
 const categoryColumns = 'category_id, parent_category_id, name, slug, description';
 
 function escapeLike(value) {
@@ -65,6 +70,7 @@ async function listPublicProducts(pool, filters) {
     `SELECT ${productColumns}
      FROM products p
      INNER JOIN categories c ON c.category_id = p.category_id
+     LEFT JOIN inventory i ON i.product_id = p.product_id
      WHERE ${conditions}
      ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,
@@ -79,6 +85,7 @@ async function getPublicProductById(pool, productId) {
     `SELECT ${productColumns}
      FROM products p
      INNER JOIN categories c ON c.category_id = p.category_id
+     LEFT JOIN inventory i ON i.product_id = p.product_id
      WHERE p.product_id = ?
        AND p.status = 'active'
        AND p.deleted_at IS NULL
@@ -94,6 +101,7 @@ async function getPublicProductBySlug(pool, slug) {
     `SELECT ${productColumns}
      FROM products p
      INNER JOIN categories c ON c.category_id = p.category_id
+     LEFT JOIN inventory i ON i.product_id = p.product_id
      WHERE p.slug = ?
        AND p.status = 'active'
        AND p.deleted_at IS NULL

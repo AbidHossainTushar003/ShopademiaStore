@@ -52,7 +52,7 @@ The migration runner takes a MySQL advisory lock, applies numbered SQL files in 
 
 ## Public catalog reads
 
-The public catalog exposes `GET /api/v1/products`, `GET /api/v1/products/:identifier` (numeric ID or slug), `GET /api/v1/categories`, and `GET /api/v1/categories/:id`. Product list filters include `q`, `category`, `minPrice`, and `maxPrice`; sort options are `newest`, `price_asc`, `price_desc`, `name_asc`, and `name_desc`. List endpoints default to page 1 and a bounded page size. Search uses an escaped name prefix, so `%`, `_`, and `!` are treated literally. Only active, non-deleted products and categories are public.
+The public catalog exposes `GET /api/v1/storefront/home`, `GET /api/v1/products`, `GET /api/v1/products/:identifier` (numeric ID or slug), `GET /api/v1/categories`, and `GET /api/v1/categories/:id`. The home response contains up to eight active categories and eight recently added products. Product list filters include `q`, `category`, `minPrice`, and `maxPrice`; sort options are `newest`, `price_asc`, `price_desc`, `name_asc`, and `name_desc`. List endpoints default to page 1 and a bounded page size. Search uses an escaped name prefix, so `%`, `_`, and `!` are treated literally. Only active, non-deleted products and categories are public. Product responses include active images ordered by sort order and an `availability` value of `in_stock` or `out_of_stock`, derived from on-hand minus reserved inventory; exact stock quantities are not exposed. Public catalog routes are limited to 120 requests per minute per IP.
 
 ## Admin authentication
 

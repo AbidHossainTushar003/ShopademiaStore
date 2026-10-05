@@ -27,6 +27,7 @@ function attachImages(products, imageRows) {
     description: product.description,
     priceMinor: product.price_minor,
     currencyCode: product.currency_code,
+    availability: product.availability,
     images: imagesByProduct.get(String(product.product_id)),
   }));
 }
@@ -51,6 +52,22 @@ async function listProducts(pool, filters) {
   return {
     data: attachImages(result.rows, imageRows),
     pagination: pagination(filters.page, filters.limit, result.total),
+  };
+}
+
+async function getStorefrontHome(pool) {
+  const [categories, products] = await Promise.all([
+    listCategories(pool, { page: 1, limit: 8 }),
+    listProducts(pool, {
+      page: 1,
+      limit: 8,
+      sort: 'newest',
+    }),
+  ]);
+
+  return {
+    categories: categories.data,
+    recentProducts: products.data,
   };
 }
 
@@ -84,4 +101,10 @@ async function getCategory(pool, categoryId) {
   return category ? toPublicCategory(category) : null;
 }
 
-module.exports = { getCategory, getProduct, listCategories, listProducts };
+module.exports = {
+  getCategory,
+  getProduct,
+  getStorefrontHome,
+  listCategories,
+  listProducts,
+};
