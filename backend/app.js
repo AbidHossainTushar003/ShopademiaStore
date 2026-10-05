@@ -11,6 +11,7 @@ const createAdminAuthRoutes = require('./routes/v1/admin-auth.routes');
 const createAdminCatalogRoutes = require('./routes/v1/admin-catalog.routes');
 const createCustomerAuthRoutes = require('./routes/v1/customer-auth.routes');
 const createCustomerRoutes = require('./routes/v1/customers.routes');
+const createCartRoutes = require('./routes/v1/cart.routes');
 const requestId = require('./middleware/request-id');
 
 function createApp(config, pool) {
@@ -45,6 +46,7 @@ function createApp(config, pool) {
   app.use('/api/v1/admin', createAdminCatalogRoutes(pool, config.auth));
   app.use('/api/v1/auth', createCustomerAuthRoutes(pool, config.auth));
   app.use('/api/v1/customers', createCustomerRoutes(pool, config.auth));
+  app.use('/api/v1/cart', createCartRoutes(pool, config.auth));
   app.use(notFound);
   app.use(errorHandler(config));
 

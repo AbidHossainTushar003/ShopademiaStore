@@ -32,6 +32,8 @@ GRANT SELECT, INSERT, UPDATE ON shopademia.products TO 'shopademia_app'@'localho
 GRANT SELECT, INSERT, UPDATE ON shopademia.product_images TO 'shopademia_app'@'localhost';
 GRANT SELECT, INSERT, UPDATE ON shopademia.inventory TO 'shopademia_app'@'localhost';
 GRANT SELECT, INSERT ON shopademia.audit_logs TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON shopademia.carts TO 'shopademia_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON shopademia.cart_items TO 'shopademia_app'@'localhost';
 ```
 
 If the API connects from a different host, replace `localhost` with the narrowest appropriate host restriction. Use the migration account only for schema migrations, and never use `root` from the application.
@@ -65,6 +67,10 @@ The login route is `POST /api/v1/admin/auth/login`; `GET /api/v1/admin/auth/me` 
 Customers register with `POST /api/v1/auth/register` using `email`, `displayName`, and `password`, then sign in through `POST /api/v1/auth/login`. Emails are trimmed and lowercased, passwords use bcrypt cost 12 and the same 12–72 byte/common-password checks as administrator bootstrap, and duplicate emails return a generic 409 conflict. Registration is limited to 10 requests per IP every 15 minutes; login also has overall and failed-attempt limits. Customer access tokens use the separate `CUSTOMER_JWT_SECRET` and `shopademia-customer` audience; their lifetime is configured by `CUSTOMER_ACCESS_TOKEN_TTL_SECONDS` (defaults to the admin token lifetime when omitted).
 
 `GET /api/v1/customers/me` and `PATCH /api/v1/customers/me` require a customer token. Profile updates allow only `displayName`; the customer ID is always taken from the verified token, and email/password changes are not supported in this phase. Profile responses omit password hashes and account-internal fields. Admin tokens are not accepted as customer tokens.
+
+## Customer cart
+
+Cart endpoints require a customer bearer token: `GET /api/v1/cart`, `POST /api/v1/cart/items` (`productId`, `quantity`), `PATCH /api/v1/cart/items/:itemId` (`quantity`), `DELETE /api/v1/cart/items/:itemId`, and `DELETE /api/v1/cart`. Cart ownership is derived from the verified customer token; cart/customer IDs and client prices/totals are not accepted. A cart holds at most 50 distinct products and 99 units per product. Adding or increasing a line requires an active product/category and sufficient unreserved inventory. Cart reads show current database prices and totals by currency, with flags for changed prices and unavailable or insufficient-stock items. A price snapshot is kept only to detect price changes; it is never used for totals.
 
 Admin catalog writes are under `/api/v1/admin/products` and `/api/v1/admin/categories`, including product status, inventory, and image operations. Every route in that admin catalog router requires an active admin token and a database-loaded `admin` or `super_admin` role. Writes use transactions and append audit records with request IDs and small before/after summaries. Duplicate unique values return 409. Categories are soft-deleted only when they have no products or child categories.
 
