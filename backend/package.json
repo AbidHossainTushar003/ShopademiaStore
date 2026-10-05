@@ -11,6 +11,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test",
+    "test:db": "node scripts/database-integration.js",
     "migrate": "node scripts/migrate.js",
     "admin:create": "node scripts/create-admin.js"
   },

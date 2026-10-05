@@ -14,7 +14,7 @@ This guide is hosting-agnostic. No production host or deployment environment has
 
 ## Automated tests and database isolation
 
-Run `npm test` in `backend/`. Tests use an in-memory mock pool and do not connect to, mutate, or reset any database. The database-test configuration guard accepts only `NODE_ENV=test`, a `TEST_DB_NAME` ending in `_test`, and a name different from `DB_NAME`. Any future database integration tests must use dedicated test credentials and a disposable test schema; never point them at development or production data.
+Run `npm test` in `backend/`. Most tests use an in-memory mock pool and do not connect to a database. For MySQL-backed checks, configure `backend/.env.test` with a dedicated test host, application account, migration account, schema-reset administrator, two distinct schema names ending in `_test`, and run `npm run test:db`. Grant the schema-reset account only the privileges required for the two named disposable schemas; the application and migration accounts must also be non-root and dedicated to these tests. This command requires the exact `TEST_DB_RESET_APPROVED=I_CONFIRM_DROP_NAMED_TEST_DATABASES` acknowledgement, drops and recreates only those two validated test schemas, applies migrations twice, runs the database integration tests, and uses `mysqldump` plus `mysql` to restore into the second test schema and compare every table's row count. Never use production or development database names or credentials. The two test schemas are left in place for inspection.
 
 ## Health checks and monitoring
 
