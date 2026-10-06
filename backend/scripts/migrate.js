@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { ConfigurationError, loadConfig } = require('../config/config');
@@ -7,6 +8,7 @@ const migrationsDirectory = path.resolve(__dirname, '..', 'migrations');
 const migrationLockName = 'shopademia_schema_migrations';
 const migrationTrackingTable = `CREATE TABLE IF NOT EXISTS schema_migrations (
   migration_name VARCHAR(255) NOT NULL,
+  checksum CHAR(64) NULL,
   applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (migration_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
@@ -18,8 +20,56 @@ const productVisibilityBackfill = '028_backfill_products_for_default_store.sql';
 
 class StoreBackfillApprovalError extends Error {}
 
+function isMigrationLockAcquired(value) {
+  return value === 1 || value === '1';
+}
+
 function isMigrationFilename(filename) {
   return /^\d{3,}_[a-z0-9][a-z0-9_-]*\.sql$/.test(filename);
+}
+
+function computeMigrationChecksum(content) {
+  return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+async function ensureMigrationChecksumColumn(connection) {
+  const [columns] = await connection.execute('SHOW COLUMNS FROM schema_migrations');
+  const hasChecksumColumn = columns.some((column) => column.Field === 'checksum');
+
+  if (!hasChecksumColumn) {
+    await connection.execute(
+      'ALTER TABLE schema_migrations ADD COLUMN checksum CHAR(64) NULL AFTER migration_name',
+    );
+  }
+}
+
+async function validateExistingMigrationChecksums(connection, migrationFiles) {
+  const [rows] = await connection.execute(
+    'SELECT migration_name, checksum FROM schema_migrations ORDER BY migration_name',
+  );
+
+  for (const row of rows) {
+    const filename = row.migration_name;
+    if (!migrationFiles.includes(filename)) {
+      continue;
+    }
+
+    const migrationData = (await fs.readFile(path.join(migrationsDirectory, filename), 'utf8')).trim();
+    const expectedChecksum = computeMigrationChecksum(migrationData);
+    if (row.checksum === null || row.checksum === undefined) {
+      await connection.execute(
+        'UPDATE schema_migrations SET checksum = ? WHERE migration_name = ?',
+        [expectedChecksum, filename],
+      );
+      continue;
+    }
+
+    if (row.checksum !== expectedChecksum) {
+      throw new Error(
+        `Applied migration ${filename} has changed. Expected checksum ${expectedChecksum}, found ${row.checksum}.`,
+      );
+    }
+  }
 }
 
 async function getMigrationFiles() {
@@ -60,18 +110,21 @@ async function runMigrations() {
       [migrationLockName, 10],
     );
 
-    if (lockRows[0]?.acquired !== 1) {
+    if (!isMigrationLockAcquired(lockRows[0]?.acquired)) {
       throw new Error('Could not acquire the database migration lock.');
     }
 
     lockAcquired = true;
     await connection.query(migrationTrackingTable);
+    await ensureMigrationChecksumColumn(connection);
+
+    const migrationFiles = await getMigrationFiles();
+    await validateExistingMigrationChecksums(connection, migrationFiles);
 
     const [appliedRows] = await connection.execute(
       'SELECT migration_name FROM schema_migrations',
     );
     const appliedMigrations = new Set(appliedRows.map((row) => row.migration_name));
-    const migrationFiles = await getMigrationFiles();
     let appliedCount = 0;
 
     const storeMigrationsPending = migrationFiles.some((filename) => (
@@ -152,9 +205,10 @@ async function runMigrations() {
               `products ${beforeTotal} before/${Number(afterRows[0].total)} after; default-store mappings ${Number(mappingRows[0].total)}`;
           }
 
+          const migrationChecksum = computeMigrationChecksum(migrationSql);
           await connection.execute(
-            'INSERT INTO schema_migrations (migration_name) VALUES (?)',
-            [filename],
+            'INSERT INTO schema_migrations (migration_name, checksum) VALUES (?, ?)',
+            [filename, migrationChecksum],
           );
           await connection.commit();
         } catch (error) {
@@ -166,13 +220,14 @@ async function runMigrations() {
         continue;
       }
 
+      const migrationChecksum = computeMigrationChecksum(migrationSql);
       await connection.query(migrationSql);
       await connection.execute(
-        'INSERT INTO schema_migrations (migration_name) VALUES (?)',
-        [filename],
+        'INSERT INTO schema_migrations (migration_name, checksum) VALUES (?, ?)',
+        [filename, migrationChecksum],
       );
       appliedCount += 1;
-      console.log(`Applied migration: ${filename}`);
+      console.log(`Applied migration: ${filename} (${migrationChecksum.slice(0, 12)}...)`);
     }
 
     if (appliedCount === 0) {
@@ -208,4 +263,11 @@ if (require.main === module) {
   });
 }
 
-module.exports = { getMigrationFiles, runMigrations };
+module.exports = {
+  computeMigrationChecksum,
+  ensureMigrationChecksumColumn,
+  getMigrationFiles,
+  isMigrationLockAcquired,
+  runMigrations,
+  validateExistingMigrationChecksums,
+};

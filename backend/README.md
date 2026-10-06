@@ -92,6 +92,8 @@ Customer accounts are shared central identities (email remains globally unique);
 
 Public catalog, customer, cart, checkout, order, and product-image requests require an active store credential. Public product/category results and product images also require a visible `store_products` mapping. Store admins can change visibility only for stores to which they are assigned. Central product/category management and all store/key/assignment administration require `super_admin`. Store-scoped admin order paths check the selected store against the administrator's assignments on the server. Health endpoints and admin authentication remain outside the store-key boundary. `ALLOWED_ORIGINS` continues to configure the admin API; each store's own origin allow-list governs its storefront API CORS responses.
 
+Production `ALLOWED_ORIGINS` and per-store allowed origins must use HTTPS. Development may use HTTP for local origins. Store-scoped CORS preflight requests are limited to 120 per minute per IP before the database origin lookup; these counters use the default in-process rate-limit store and are not shared across server instances.
+
 The super-admin endpoints are:
 
 - `GET/POST /api/v1/admin/stores` and `GET/PATCH /api/v1/admin/stores/:storeId`.

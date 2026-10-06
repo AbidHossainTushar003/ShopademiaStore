@@ -1,0 +1,98 @@
+* { box-sizing: border-box; }
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, "Segoe UI", sans-serif;
+  background: var(--shopademia-bg);
+  color: var(--shopademia-text);
+  line-height: 1.5;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--shopademia-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img[loading="lazy"] {
+  background: #e2e8f0;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 3px;
+}
+
+main {
+  width: min(var(--shopademia-max-width), calc(100% - 2rem));
+  margin: 0 auto;
+  padding: var(--shopademia-space-8) 0 var(--shopademia-space-10);
+}
+
+h1, h2, h3, h4, p {
+  margin-top: 0;
+}
+
+p {
+  color: var(--shopademia-muted);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.text-muted { color: var(--shopademia-muted); }
+
+.container {
+  width: min(var(--shopademia-max-width), calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(249, 115, 22, 0.12);
+  color: var(--shopademia-orange);
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

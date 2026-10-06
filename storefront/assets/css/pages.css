@@ -1,0 +1,137 @@
+main.page-shell {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1,
+.page-header h2 {
+  margin-bottom: 0.45rem;
+}
+
+.collection-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.filter-panel,
+.summary-panel,
+.checkout-panel,
+.account-panel,
+.cart-panel {
+  background: var(--shopademia-surface);
+  border: 1px solid var(--shopademia-border);
+  border-radius: var(--shopademia-radius);
+  box-shadow: var(--shopademia-shadow);
+  padding: 1.25rem;
+}
+
+.filter-panel {
+  position: sticky;
+  top: 5.5rem;
+  height: fit-content;
+}
+
+.cart-layout,
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 1.5rem;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--shopademia-border);
+  border-radius: var(--shopademia-radius);
+  background: white;
+}
+
+.cart-item img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.summary-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--shopademia-muted);
+}
+
+.summary-row strong {
+  color: var(--shopademia-text);
+}
+
+.summary-row.total {
+  padding-top: 1rem;
+  border-top: 1px solid var(--shopademia-border);
+  color: var(--shopademia-text);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.signin-box,
+.success-box {
+  border: 1px solid var(--shopademia-border);
+  background: white;
+  border-radius: var(--shopademia-radius);
+  box-shadow: var(--shopademia-shadow);
+  padding: 2rem;
+}
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.auth-card {
+  background: white;
+  border: 1px solid var(--shopademia-border);
+  box-shadow: var(--shopademia-shadow);
+  border-radius: var(--shopademia-radius);
+  padding: 1.5rem;
+}
+
+.login-form,
+.register-form,
+.checkout-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--shopademia-border);
+}
+
+@media (max-width: 860px) {
+  .collection-layout,
+  .cart-layout,
+  .checkout-layout,
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-panel {
+    position: static;
+  }
+}

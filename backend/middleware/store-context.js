@@ -1,4 +1,5 @@
 const { createHash } = require('node:crypto');
+const rateLimit = require('express-rate-limit').rateLimit;
 const storesRepository = require('../repositories/stores.repository');
 const { validateStoreId } = require('../validators/stores.validators');
 
@@ -12,6 +13,22 @@ function unauthorized(response) {
 }
 
 function createStoreContext(pool) {
+  const limitStorePreflights = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 120,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler(_request, response) {
+      return response.status(429).json({
+        success: false,
+        error: {
+          code: 'RATE_LIMITED',
+          message: 'Too many preflight requests. Try again later.',
+        },
+      });
+    },
+  });
+
   return async (request, response, next) => {
     if (!storeScopedPath.test(request.path)) {
       return next();
@@ -22,10 +39,20 @@ function createStoreContext(pool) {
     try {
       const origin = request.get('origin');
       if (request.method === 'OPTIONS') {
-        request.storeOriginAllowed = origin
-          ? (await storesRepository.listStoresForOrigin(pool, origin)).length > 0
-          : false;
-        return next();
+        return limitStorePreflights(request, response, (error) => {
+          if (error) {
+            return next(error);
+          }
+
+          const resolveStoreOrigin = async () => {
+            request.storeOriginAllowed = origin
+              ? (await storesRepository.listStoresForOrigin(pool, origin)).length > 0
+              : false;
+            return next();
+          };
+
+          resolveStoreOrigin().catch(next);
+        });
       }
 
       const key = request.get('x-store-key');

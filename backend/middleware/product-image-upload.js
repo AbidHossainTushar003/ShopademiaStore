@@ -1,7 +1,46 @@
 const multer = require('multer');
 
+const MAX_TOTAL_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+const boundedMemoryStorage = {
+  _handleFile(request, file, callback) {
+    const chunks = [];
+    let size = 0;
+    let completed = false;
+    request.productImageUploadBytes = request.productImageUploadBytes || 0;
+
+    const finish = (error, information) => {
+      if (completed) return;
+      completed = true;
+      callback(error, information);
+    };
+
+    file.stream.on('data', (chunk) => {
+      const totalSize = request.productImageUploadBytes + chunk.length;
+      if (totalSize > MAX_TOTAL_UPLOAD_BYTES) {
+        finish(new multer.MulterError('LIMIT_FILE_SIZE', file.fieldname));
+        file.stream.resume();
+        return;
+      }
+      request.productImageUploadBytes = totalSize;
+      size += chunk.length;
+      chunks.push(chunk);
+    });
+    file.stream.on('error', (error) => finish(error));
+    file.stream.on('end', () => {
+      if (!completed) {
+        finish(null, { buffer: Buffer.concat(chunks, size), size });
+      }
+    });
+  },
+  _removeFile(_request, file, callback) {
+    delete file.buffer;
+    callback(null);
+  },
+};
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: boundedMemoryStorage,
   preservePath: true,
   limits: {
     fileSize: 5 * 1024 * 1024,

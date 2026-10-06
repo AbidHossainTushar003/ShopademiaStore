@@ -1,5 +1,11 @@
 # ShopademiaStore
-Production-ready multi-store e-commerce platform with centralized REST API, admin panel, MySQL database, and multiple storefront support.
+Multi-store e-commerce platform under development. The current repository contains a centralized Node.js/Express API backed by MySQL; storefront and admin frontend applications are not present yet.
+
+## Project governance and API contract
+
+- [Master Specification](docs/MASTER_SPECIFICATION.md) is the authoritative requirements document.
+- [Agent operating rules](CLAUDE.md) and [protected files](PROTECTED_FILES.md) define repository workflow and approval gates.
+- [OpenAPI contract](docs/openapi.yaml) inventories the API routes currently implemented.
 
 ## API caching
 

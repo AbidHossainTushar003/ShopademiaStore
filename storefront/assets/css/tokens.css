@@ -1,0 +1,23 @@
+:root {
+  --shopademia-orange: #F97316;
+  --shopademia-blue: #2563EB;
+  --shopademia-dark-blue: #1E3A8A;
+  --shopademia-bg: #F8FAFC;
+  --shopademia-surface: #FFFFFF;
+  --shopademia-text: #0F172A;
+  --shopademia-muted: #475569;
+  --shopademia-border: #E2E8F0;
+  --shopademia-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --shopademia-radius: 14px;
+  --shopademia-small-radius: 10px;
+  --shopademia-space-1: 0.25rem;
+  --shopademia-space-2: 0.5rem;
+  --shopademia-space-3: 0.75rem;
+  --shopademia-space-4: 1rem;
+  --shopademia-space-5: 1.25rem;
+  --shopademia-space-6: 1.5rem;
+  --shopademia-space-8: 2rem;
+  --shopademia-space-10: 2.5rem;
+  --shopademia-space-12: 3rem;
+  --shopademia-max-width: 1200px;
+}

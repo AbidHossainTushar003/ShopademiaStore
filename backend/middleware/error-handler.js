@@ -1,5 +1,5 @@
 function errorHandler(config) {
-  return (error, _request, response, next) => {
+  return (error, request, response, next) => {
     if (response.headersSent) {
       return next(error);
     }
@@ -49,6 +49,25 @@ function errorHandler(config) {
 
     const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
     const isServerError = statusCode >= 500;
+    const isUnexpectedClientError = statusCode >= 400 &&
+      statusCode < 500 &&
+      !error.publicCode;
+
+    if (isServerError || isUnexpectedClientError) {
+      const logEntry = {
+        event: isServerError ? 'http.server_error' : 'http.unexpected_client_error',
+        requestId: request.id,
+        method: request.method,
+        path: request.path,
+        statusCode,
+        errorClass: typeof error.name === 'string' ? error.name : 'Error',
+        message: 'Unhandled request error.',
+      };
+      if (config.nodeEnv !== 'production' && typeof error.stack === 'string') {
+        logEntry.stack = error.stack;
+      }
+      console.error(JSON.stringify(logEntry));
+    }
 
     return response.status(statusCode).json({
       success: false,

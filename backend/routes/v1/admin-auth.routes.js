@@ -1,5 +1,6 @@
 const express = require('express');
-const rateLimit = require('express-rate-limit').rateLimit;
+const { createHash } = require('node:crypto');
+const { ipKeyGenerator, rateLimit } = require('express-rate-limit');
 const createAdminAuthentication = require('../../middleware/admin-authentication');
 const requireRoles = require('../../middleware/require-roles');
 const adminRequestLimit = require('../../middleware/admin-request-limit');
@@ -13,6 +14,14 @@ function rateLimitResponse(_request, response) {
       message: 'Too many login attempts. Try again later.',
     },
   });
+}
+
+function failedLoginKey(request) {
+  const email = typeof request.body?.email === 'string'
+    ? request.body.email.trim().toLowerCase()
+    : '';
+  const emailDigest = createHash('sha256').update(email, 'utf8').digest('hex');
+  return `${ipKeyGenerator(request.ip)}:${emailDigest}`;
 }
 
 function createAdminAuthRoutes(pool, authConfig) {
@@ -30,6 +39,7 @@ function createAdminAuthRoutes(pool, authConfig) {
     windowMs: 15 * 60 * 1000,
     limit: 5,
     skipSuccessfulRequests: true,
+    keyGenerator: failedLoginKey,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: rateLimitResponse,

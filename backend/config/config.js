@@ -1,4 +1,5 @@
 const path = require('node:path');
+const net = require('node:net');
 const dotenv = require('dotenv');
 
 class ConfigurationError extends Error {
@@ -28,6 +29,48 @@ function parsePoolSize(value) {
   return poolSize;
 }
 
+function parseTrustProxy(value) {
+  const setting = typeof value === 'string' ? value.trim() : '';
+
+  if (!setting || setting === '0' || setting.toLowerCase() === 'false') {
+    return false;
+  }
+
+  if (setting === '*' || setting.toLowerCase() === 'true') {
+    throw new ConfigurationError('TRUST_PROXY must not be true or a wildcard.');
+  }
+
+  if (/^[1-9]\d*$/.test(setting)) {
+    const hops = Number(setting);
+    if (Number.isSafeInteger(hops)) {
+      return hops;
+    }
+    throw new ConfigurationError('TRUST_PROXY hop count must be a positive safe integer.');
+  }
+
+  const proxies = setting.split(',').map((proxy) => proxy.trim());
+  if (proxies.some((proxy) => !proxy || proxy === '*')) {
+    throw new ConfigurationError('TRUST_PROXY must contain explicit trusted proxy IPs or CIDRs.');
+  }
+
+  for (const proxy of proxies) {
+    const [address, prefix, ...extra] = proxy.split('/');
+    const addressType = net.isIP(address);
+    if (!addressType || extra.length > 0) {
+      throw new ConfigurationError('TRUST_PROXY must contain explicit trusted proxy IPs or CIDRs.');
+    }
+
+    if (prefix !== undefined) {
+      const maxPrefix = addressType === 4 ? 32 : 128;
+      if (!/^\d+$/.test(prefix) || Number(prefix) < 1 || Number(prefix) > maxPrefix) {
+        throw new ConfigurationError('TRUST_PROXY CIDR ranges must not be wildcards and must be valid.');
+      }
+    }
+  }
+
+  return proxies;
+}
+
 function parseTokenLifetime(value, variableName = 'ADMIN_ACCESS_TOKEN_TTL_SECONDS') {
   const lifetime = Number(value);
 
@@ -40,7 +83,7 @@ function parseTokenLifetime(value, variableName = 'ADMIN_ACCESS_TOKEN_TTL_SECOND
   return lifetime;
 }
 
-function parseAllowedOrigins(value) {
+function parseAllowedOrigins(value, nodeEnv = 'development') {
   const origins = value.split(',').map((origin) => origin.trim());
 
   if (origins.some((origin) => !origin || origin === '*')) {
@@ -61,6 +104,9 @@ function parseAllowedOrigins(value) {
       parsedOrigin.origin !== origin
     ) {
       throw new ConfigurationError('ALLOWED_ORIGINS must contain valid HTTP or HTTPS origins.');
+    }
+    if (nodeEnv === 'production' && parsedOrigin.protocol !== 'https:') {
+      throw new ConfigurationError('ALLOWED_ORIGINS must use HTTPS in production.');
     }
   }
 
@@ -183,7 +229,8 @@ function loadConfig({ requireMigrationCredentials = false } = {}) {
   return {
     port: parsePort(portValue),
     nodeEnv,
-    allowedOrigins: parseAllowedOrigins(allowedOriginsValue),
+    trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
+    allowedOrigins: parseAllowedOrigins(allowedOriginsValue, nodeEnv),
     database: {
       host: databaseHost,
       port: databasePort,
@@ -207,4 +254,9 @@ function loadConfig({ requireMigrationCredentials = false } = {}) {
   };
 }
 
-module.exports = { ConfigurationError, loadConfig };
+module.exports = {
+  ConfigurationError,
+  loadConfig,
+  parseAllowedOrigins,
+  parseTrustProxy,
+};

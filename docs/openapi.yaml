@@ -1,0 +1,820 @@
+openapi: 3.1.0
+info:
+  title: ShopademiaStore API
+  version: 1.0.0
+  description: >-
+    Inventory of the routes currently wired in backend/routes/v1 and the
+    product-media static handler. Request and response field schemas are marked
+    unknown where the implementation contract has not been fully specified here.
+    CORS preflight OPTIONS handling is middleware-generated rather than an
+    explicit router declaration and is not separately modeled as an operation.
+servers:
+  - url: /
+    description: API origin; versioned API paths begin with /api/v1.
+tags:
+  - name: Health
+  - name: Catalog
+  - name: Customer authentication
+  - name: Customer profile
+  - name: Cart
+  - name: Orders
+  - name: Admin authentication
+  - name: Admin catalog
+  - name: Admin stores
+  - name: Admin orders
+  - name: Media
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: Process liveness
+      responses:
+        "200":
+          description: Liveness success envelope.
+  /api/v1/health/ready:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+      summary: Database readiness
+      responses:
+        "200":
+          description: Readiness success envelope.
+        "503":
+          description: Dependency unavailable.
+  /api/v1/storefront/home:
+    get:
+      tags: [Catalog]
+      operationId: getStorefrontHome
+      security:
+        - StoreKey: []
+      responses:
+        "200":
+          description: Storefront home success envelope; response fields are implementation-defined.
+  /api/v1/products:
+    get:
+      tags: [Catalog]
+      operationId: listPublicProducts
+      security:
+        - StoreKey: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Product list success envelope; available filters are documented in backend/README.md.
+  /api/v1/products/{identifier}:
+    get:
+      tags: [Catalog]
+      operationId: getPublicProduct
+      security:
+        - StoreKey: []
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema: { type: string }
+          description: Numeric product ID or product slug.
+      responses:
+        "200":
+          description: Product success envelope.
+        "404":
+          description: Product not found.
+  /api/v1/categories:
+    get:
+      tags: [Catalog]
+      operationId: listPublicCategories
+      security:
+        - StoreKey: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Category list success envelope.
+  /api/v1/categories/{id}:
+    get:
+      tags: [Catalog]
+      operationId: getPublicCategory
+      security:
+        - StoreKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Category success envelope.
+        "404":
+          description: Category not found.
+  /api/v1/admin/auth/login:
+    post:
+      tags: [Admin authentication]
+      operationId: adminLogin
+      summary: Authenticate an administrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Request field schema is unknown here; see backend/validators/admin-auth.validators.js.
+      responses:
+        "200":
+          description: Authentication success envelope.
+        "401":
+          description: Invalid credentials.
+        "429":
+          description: Login rate limit exceeded.
+  /api/v1/admin/auth/me:
+    get:
+      tags: [Admin authentication]
+      operationId: getAdminIdentity
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Authenticated administrator success envelope.
+        "401":
+          description: Authentication required.
+        "403":
+          description: Role not permitted.
+  /api/v1/admin/products:
+    get:
+      tags: [Admin catalog]
+      operationId: listAdminProducts
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Product list success envelope; query schema is implementation-defined.
+    post:
+      tags: [Admin catalog]
+      operationId: createAdminProduct
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Product fields are defined by backend/validators/admin-catalog.validators.js.
+      responses:
+        "201":
+          description: Product created.
+        "422":
+          description: Validation failure.
+  /api/v1/admin/products/{productId}:
+    parameters:
+      - $ref: "#/components/parameters/ProductId"
+    get:
+      tags: [Admin catalog]
+      operationId: getAdminProduct
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Product success envelope.
+        "404":
+          description: Product not found.
+    put:
+      tags: [Admin catalog]
+      operationId: updateAdminProduct
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Product update field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Product updated.
+        "422":
+          description: Validation failure.
+  /api/v1/admin/products/{productId}/status:
+    patch:
+      tags: [Admin catalog]
+      operationId: updateAdminProductStatus
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Status request field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Product status updated.
+  /api/v1/admin/products/{productId}/inventory:
+    parameters:
+      - $ref: "#/components/parameters/ProductId"
+    put:
+      tags: [Admin catalog]
+      operationId: setAdminProductInventory
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Inventory request field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Inventory set.
+    patch:
+      tags: [Admin catalog]
+      operationId: adjustAdminProductInventory
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Inventory adjustment field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Inventory adjusted.
+  /api/v1/admin/products/{productId}/images:
+    post:
+      tags: [Admin catalog]
+      operationId: uploadAdminProductImages
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              description: Multipart field names and file schema are defined by the upload middleware; not specified here.
+      responses:
+        "201":
+          description: Images uploaded.
+        "413":
+          description: Upload too large.
+  /api/v1/admin/products/{productId}/images/{imageId}:
+    parameters:
+      - $ref: "#/components/parameters/ProductId"
+      - name: imageId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [Admin catalog]
+      operationId: updateAdminProductImage
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Image update field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Image updated.
+    delete:
+      tags: [Admin catalog]
+      operationId: deleteAdminProductImage
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Image removal result success envelope.
+  /api/v1/admin/categories:
+    get:
+      tags: [Admin catalog]
+      operationId: listAdminCategories
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Category list success envelope.
+    post:
+      tags: [Admin catalog]
+      operationId: createAdminCategory
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Category fields are defined by backend/validators/admin-catalog.validators.js; field schema is not duplicated here." }
+      responses:
+        "201":
+          description: Category created.
+  /api/v1/admin/categories/{categoryId}:
+    parameters:
+      - $ref: "#/components/parameters/CategoryId"
+    get:
+      tags: [Admin catalog]
+      operationId: getAdminCategory
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Category success envelope.
+        "404":
+          description: Category not found.
+    put:
+      tags: [Admin catalog]
+      operationId: updateAdminCategory
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Category update field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Category updated.
+    delete:
+      tags: [Admin catalog]
+      operationId: deleteAdminCategory
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Category deactivated success envelope.
+  /api/v1/admin/categories/{categoryId}/status:
+    patch:
+      tags: [Admin catalog]
+      operationId: updateAdminCategoryStatus
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Status request field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Category status updated.
+  /api/v1/admin/stores:
+    get:
+      tags: [Admin stores]
+      operationId: listAdminStores
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Store list success envelope.
+    post:
+      tags: [Admin stores]
+      operationId: createAdminStore
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Store fields are defined by backend/validators/stores.validators.js; field schema is not duplicated here." }
+      responses:
+        "201":
+          description: Store created; a generated store key is returned once.
+  /api/v1/admin/stores/{storeId}:
+    parameters:
+      - $ref: "#/components/parameters/StoreId"
+    get:
+      tags: [Admin stores]
+      operationId: getAdminStore
+      security:
+        - AdminBearer: []
+      responses:
+        "200":
+          description: Store success envelope.
+    patch:
+      tags: [Admin stores]
+      operationId: updateAdminStore
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Store update fields are defined by backend/validators/stores.validators.js; field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Store updated.
+  /api/v1/admin/stores/{storeId}/admins:
+    get:
+      tags: [Admin stores]
+      operationId: listStoreAdmins
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+      responses:
+        "200":
+          description: Store administrators success envelope.
+  /api/v1/admin/stores/{storeId}/status:
+    patch:
+      tags: [Admin stores]
+      operationId: updateAdminStoreStatus
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Status request field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Store status updated.
+  /api/v1/admin/stores/{storeId}/keys/rotate:
+    post:
+      tags: [Admin stores]
+      operationId: rotateStoreKey
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+      responses:
+        "200":
+          description: Store key rotated; new key is returned once.
+  /api/v1/admin/stores/{storeId}/keys/current:
+    delete:
+      tags: [Admin stores]
+      operationId: revokeStoreKey
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+      responses:
+        "200":
+          description: Current store key revoked.
+  /api/v1/admin/stores/{storeId}/admins/{adminId}:
+    parameters:
+      - $ref: "#/components/parameters/StoreId"
+      - name: adminId
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Admin stores]
+      operationId: assignStoreAdmin
+      security:
+        - AdminBearer: []
+      responses:
+        "201":
+          description: Administrator assigned to store.
+    delete:
+      tags: [Admin stores]
+      operationId: removeStoreAdmin
+      security:
+        - AdminBearer: []
+      responses:
+        "204":
+          description: Store administrator assignment removed.
+  /api/v1/admin/stores/{storeId}/products/{productId}/visibility:
+    put:
+      tags: [Admin stores]
+      operationId: updateStoreProductVisibility
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/ProductId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Visibility request field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Store product visibility updated.
+  /api/v1/admin/stores/{storeId}/orders:
+    get:
+      tags: [Admin orders]
+      operationId: listAdminStoreOrders
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+      responses:
+        "200":
+          description: Order list success envelope.
+        "422":
+          description: Pagination offset exceeds the supported maximum.
+  /api/v1/admin/stores/{storeId}/orders/{orderId}:
+    get:
+      tags: [Admin orders]
+      operationId: getAdminStoreOrder
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Order success envelope.
+        "404":
+          description: Order not found.
+  /api/v1/admin/stores/{storeId}/orders/{orderId}/status:
+    patch:
+      tags: [Admin orders]
+      operationId: updateAdminStoreOrderStatus
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Order-status request field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Order status updated.
+        "409":
+          description: Illegal state transition.
+  /api/v1/admin/stores/{storeId}/orders/{orderId}/payment-status:
+    patch:
+      tags: [Admin orders]
+      operationId: updateAdminStoreOrderPaymentStatus
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/StoreId"
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Payment-status request field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Payment status updated.
+        "409":
+          description: Illegal state transition.
+  /api/v1/auth/register:
+    post:
+      tags: [Customer authentication]
+      operationId: registerCustomer
+      security:
+        - StoreKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Registration fields are defined by backend/validators/customer-auth.validators.js; field schema is not duplicated here." }
+      responses:
+        "201":
+          description: Customer registered.
+        "409":
+          description: Conflict.
+        "429":
+          description: Registration rate limit exceeded.
+  /api/v1/auth/login:
+    post:
+      tags: [Customer authentication]
+      operationId: loginCustomer
+      security:
+        - StoreKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Login fields are defined by backend/validators/customer-auth.validators.js; field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Customer authentication success envelope.
+        "401":
+          description: Invalid credentials.
+        "429":
+          description: Login rate limit exceeded.
+  /api/v1/customers/me:
+    get:
+      tags: [Customer profile]
+      operationId: getCustomerProfile
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      responses:
+        "200":
+          description: Customer profile success envelope.
+        "401":
+          description: Authentication required.
+    patch:
+      tags: [Customer profile]
+      operationId: updateCustomerProfile
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Profile update field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Customer profile updated.
+  /api/v1/cart:
+    get:
+      tags: [Cart]
+      operationId: getCustomerCart
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      responses:
+        "200":
+          description: Cart success envelope.
+    delete:
+      tags: [Cart]
+      operationId: clearCustomerCart
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      responses:
+        "204":
+          description: Cart cleared.
+  /api/v1/cart/items:
+    post:
+      tags: [Cart]
+      operationId: addCustomerCartItem
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Cart item fields are defined by backend/validators/cart.validators.js; field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Existing cart line updated.
+        "201":
+          description: Cart line created.
+        "422":
+          description: Validation failure.
+  /api/v1/cart/items/{itemId}:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [Cart]
+      operationId: updateCustomerCartItem
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Cart quantity field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Cart updated.
+    delete:
+      tags: [Cart]
+      operationId: removeCustomerCartItem
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      responses:
+        "204":
+          description: Cart item removed.
+  /api/v1/checkout:
+    post:
+      tags: [Orders]
+      operationId: checkout
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { description: "Shipping fields are defined by backend/validators/order.validators.js; field schema is not duplicated here." }
+      responses:
+        "200":
+          description: Existing idempotent order returned.
+        "201":
+          description: Order created.
+        "409":
+          description: Cart or inventory conflict.
+  /api/v1/orders:
+    get:
+      tags: [Orders]
+      operationId: listCustomerOrders
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      responses:
+        "200":
+          description: Customer order list success envelope.
+        "422":
+          description: Pagination offset exceeds the supported maximum.
+  /api/v1/orders/{orderId}:
+    get:
+      tags: [Orders]
+      operationId: getCustomerOrder
+      security:
+        - StoreKey: []
+          CustomerBearer: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Customer order success envelope.
+        "404":
+          description: Order not found.
+  /media/products/{filename}:
+    get:
+      tags: [Media]
+      operationId: getStoreProductMedia
+      security:
+        - StoreKey: []
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Product image bytes.
+          content:
+            image/jpeg: {}
+            image/png: {}
+            image/webp: {}
+        "404":
+          description: Image not found or not visible to this store.
+    head:
+      tags: [Media]
+      operationId: headStoreProductMedia
+      security:
+        - StoreKey: []
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Image metadata without a response body.
+        "404":
+          description: Image not found or not visible to this store.
+components:
+  securitySchemes:
+    StoreKey:
+      type: apiKey
+      in: header
+      name: X-Store-Key
+      description: Public store identifier; not an authorization credential for administrative actions.
+    AdminBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Administrator access token.
+    CustomerBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Store-bound customer access token.
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1 }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1 }
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema: { type: string }
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema: { type: string }
+    StoreId:
+      name: storeId
+      in: path
+      required: true
+      schema: { type: string }
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { type: string }

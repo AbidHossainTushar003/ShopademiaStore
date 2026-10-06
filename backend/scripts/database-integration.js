@@ -119,14 +119,14 @@ async function tableRowCounts(config) {
   const pool = createPool({ ...config, poolSize: 1 });
   try {
     const [tables] = await pool.execute(
-      `SELECT table_name
+      `SELECT table_name AS tableName
        FROM information_schema.tables
        WHERE table_schema = ? AND table_type = 'BASE TABLE'
        ORDER BY table_name`,
       [config.name],
     );
     const counts = {};
-    for (const { table_name: tableName } of tables) {
+    for (const { tableName } of tables) {
       const escapedName = tableName.replace(/`/g, '``');
       const [rows] = await pool.query(`SELECT COUNT(*) AS total FROM \`${escapedName}\``);
       counts[tableName] = Number(rows[0].total);
@@ -156,19 +156,12 @@ async function createMysqlDump(config) {
 
 async function restoreMysqlDump(config, dump) {
   const env = { ...process.env, MYSQL_PWD: config.password };
-  const rewritten = dump.replace(
-    new RegExp(`^USE \`${config.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\`;`, 'm'),
-    `USE \`${config.secondName}\`;`,
-  );
-  if (rewritten === dump) {
-    throw new Error('mysqldump did not contain the expected source-database directive.');
-  }
   await runProcess('mysql', [
     '--host', config.host,
     '--port', String(config.port),
     '--user', config.user,
     '--database', config.secondName,
-  ], { cwd: path.resolve(__dirname, '..'), env, input: rewritten });
+  ], { cwd: path.resolve(__dirname, '..'), env, input: dump });
 }
 
 async function run() {

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shopademia Admin</title>
+    <style>
+      :root {
+        --primary: #F97316;
+        --secondary: #2563EB;
+        --navy: #1E3A8A;
+        --bg: #F8FAFC;
+        --text: #0F172A;
+        --muted: #475569;
+        --card: #FFFFFF;
+        --border: #E2E8F0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .shell { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+      .header {
+        background: var(--navy); color: #fff; padding: 1rem 1.25rem; border-radius: 14px; display: flex;
+        justify-content: space-between; align-items: center; gap: 1rem;
+      }
+      .panel {
+        background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-top: 1.5rem;
+      }
+      form { display: grid; gap: 1rem; max-width: 420px; }
+      label { display: grid; gap: 0.4rem; font-weight: 700; }
+      input, button {
+        border-radius: 10px; border: 1px solid var(--border); padding: 0.8rem 0.9rem; font-size: 1rem;
+      }
+      button {
+        background: var(--primary); border: none; color: white; font-weight: 700; cursor: pointer;
+      }
+      .message { margin-top: 1rem; color: var(--muted); }
+      .status { color: var(--navy); font-weight: 700; }
+      @media (max-width: 700px) {
+        .header { flex-direction: column; align-items: flex-start; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="header">
+        <div>
+          <strong>Shopademia Admin</strong>
+        </div>
+        <a href="/index.html" style="color: white; text-decoration: none;">Storefront</a>
+      </header>
+
+      <section class="panel">
+        <h1>Admin login</h1>
+        <form id="login-form">
+          <label>
+            Email
+            <input id="email" type="email" name="email" placeholder="admin@example.com" required />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" name="password" placeholder="Password" required />
+          </label>
+          <button type="submit">Sign in</button>
+        </form>
+        <div id="message" class="message" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <script>
+      const form = document.getElementById('login-form');
+      const message = document.getElementById('message');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const payload = {
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value,
+        };
+
+        message.textContent = 'Authenticating…';
+        try {
+          const response = await fetch('/api/v1/admin/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(result.error?.message || 'Login failed');
+          }
+          message.className = 'status';
+          message.textContent = 'Login succeeded. Store the returned token securely and continue with the API.';
+        } catch (error) {
+          message.className = 'message';
+          message.textContent = error.message || 'Login failed.';
+        }
+      });
+    </script>
+  </body>
+</html>

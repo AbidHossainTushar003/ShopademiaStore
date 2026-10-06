@@ -9,6 +9,7 @@ const orderStatuses = new Set([
   'cancelled',
 ]);
 const paymentStatuses = new Set(['pending', 'paid', 'failed', 'cancelled']);
+const maximumOrderOffset = 10000;
 
 function validateShippingBody(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -141,9 +142,17 @@ function validateOrderListQuery(query, { admin = false } = {}) {
   if (paymentStatus !== undefined && !paymentStatuses.has(paymentStatus)) {
     throw new ValidationError('"paymentStatus" is invalid.', 422);
   }
+  const page = parse(query.page, 'page', 1, 1000000);
+  const limit = parse(query.limit, 'limit', 20, 100);
+  if ((page - 1) * limit > maximumOrderOffset) {
+    throw new ValidationError(
+      `"page" and "limit" cannot request an offset greater than ${maximumOrderOffset} rows.`,
+      422,
+    );
+  }
   return {
-    page: parse(query.page, 'page', 1, 1000000),
-    limit: parse(query.limit, 'limit', 20, 100),
+    page,
+    limit,
     orderStatus,
     paymentStatus,
   };

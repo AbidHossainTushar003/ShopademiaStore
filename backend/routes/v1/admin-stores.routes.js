@@ -5,9 +5,9 @@ const { authorizeStoreRequest } = require('../../middleware/store-context');
 const createAdminStoresController = require('../../controllers/admin-stores.controller');
 const adminRequestLimit = require('../../middleware/admin-request-limit');
 
-function createAdminStoresRoutes(pool, authConfig) {
+function createAdminStoresRoutes(pool, authConfig, nodeEnv) {
   const router = express.Router();
-  const controller = createAdminStoresController(pool);
+  const controller = createAdminStoresController(pool, nodeEnv);
   const authenticate = createAdminAuthentication(pool, authConfig);
   const requestLimit = adminRequestLimit;
 

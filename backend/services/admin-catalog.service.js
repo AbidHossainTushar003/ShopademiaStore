@@ -12,6 +12,27 @@ function httpError(statusCode, code, message) {
   return error;
 }
 
+function logImageCleanupFailure(requestId, error) {
+  console.error(JSON.stringify({
+    event: 'catalog.image_cleanup_failed',
+    requestId,
+    errorClass: typeof error?.name === 'string' ? error.name : 'Error',
+    message: 'Stored image cleanup failed; reconciliation may be required.',
+  }));
+}
+
+async function cleanupFailedUpload(storedFiles, requestId, originalError) {
+  const results = await Promise.allSettled(
+    storedFiles.map((file) => Promise.resolve().then(() => file.remove())),
+  );
+  for (const result of results) {
+    if (result.status === 'rejected' && result.reason?.code !== 'ENOENT') {
+      logImageCleanupFailure(requestId, result.reason);
+    }
+  }
+  throw originalError;
+}
+
 function publicAdminImage(image) {
   return {
     id: image.product_image_id,
@@ -446,8 +467,7 @@ async function uploadImages(pool, admin, requestId, productId, files) {
 
     return images.map(publicAdminImage);
   } catch (error) {
-    await Promise.all(storedFiles.map((file) => file.remove()));
-    throw error;
+    return cleanupFailedUpload(storedFiles, requestId, error);
   }
 }
 
@@ -513,12 +533,19 @@ async function removeImage(pool, admin, requestId, productId, imageId) {
   if (result === null) {
     return false;
   }
-  await removeProductImage(result);
+  try {
+    await removeProductImage(result);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      logImageCleanupFailure(requestId, error);
+    }
+  }
   return true;
 }
 
 module.exports = {
   changeInventory,
+  cleanupFailedUpload,
   createCategory,
   createProduct,
   deleteCategory,

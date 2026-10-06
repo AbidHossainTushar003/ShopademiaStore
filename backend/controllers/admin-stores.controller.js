@@ -16,7 +16,9 @@ function notFound(response, entity = 'Store') {
   });
 }
 
-function createAdminStoresController(pool) {
+function createAdminStoresController(pool, nodeEnv) {
+  const originValidationOptions = { requireHttps: nodeEnv === 'production' };
+
   return {
     async list(_request, response) {
       const stores = await storesService.listStores(pool);
@@ -36,7 +38,7 @@ function createAdminStoresController(pool) {
     },
 
     async create(request, response) {
-      const input = validateCreateStoreBody(request.body);
+      const input = validateCreateStoreBody(request.body, originValidationOptions);
       const result = await storesService.createStore(
         pool,
         request.admin,
@@ -48,7 +50,7 @@ function createAdminStoresController(pool) {
 
     async update(request, response) {
       const storeId = validateStoreId(request.params.storeId);
-      const input = validateUpdateStoreBody(request.body);
+      const input = validateUpdateStoreBody(request.body, originValidationOptions);
       const store = await storesService.updateStore(
         pool,
         request.admin,

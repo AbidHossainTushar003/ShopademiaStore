@@ -49,6 +49,7 @@ function createPool({
   failReadiness = false,
   failCatalog = false,
   invalidStoreIds = [],
+  storeAllowedOrigins = ['https://store-one.example'],
 } = {}) {
   const calls = [];
   const keysByHash = new Map(
@@ -75,8 +76,12 @@ function createPool({
           status: 'active',
           credential_hash: parameters[0],
           key_revoked_at: null,
-          allowed_origins: ['https://store-one.example'],
+          allowed_origins: storeAllowedOrigins,
         }], []];
+      }
+
+      if (sql.includes('JSON_CONTAINS(allowed_origins')) {
+        return [storeAllowedOrigins.includes(parameters[0]) ? [{ store_id: '1' }] : [], []];
       }
 
       if (sql === 'SELECT 1') {
@@ -140,10 +145,12 @@ function startTestServer(options) {
   const pool = createPool(options);
   const config = {
     nodeEnv: options?.nodeEnv || 'test',
+    trustProxy: options?.trustProxy || false,
     allowedOrigins: ['https://store-one.example'],
     auth: authConfig,
   };
-  const server = createApp(config, pool).listen(0);
+  const app = createApp(config, pool);
+  const server = app.listen(0);
 
   return new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -151,6 +158,7 @@ function startTestServer(options) {
       server.removeListener('error', reject);
       resolve({
         pool,
+        app,
         server,
         baseUrl: `http://127.0.0.1:${server.address().port}`,
         close: () => new Promise((done, fail) => {

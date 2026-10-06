@@ -58,7 +58,7 @@ function validateSlug(value) {
   return value;
 }
 
-function validateOrigins(value) {
+function validateOrigins(value, { requireHttps = false } = {}) {
   if (!Array.isArray(value) || value.length > 20) {
     throw invalid('allowedOrigins must be an array containing at most 20 origins.');
   }
@@ -72,13 +72,18 @@ function validateOrigins(value) {
     } catch {
       throw invalid('Every allowed origin must be a specific HTTP or HTTPS origin.');
     }
+    const validProtocol = requireHttps
+      ? parsed.protocol === 'https:'
+      : ['http:', 'https:'].includes(parsed.protocol);
     if (
-      !['http:', 'https:'].includes(parsed.protocol) ||
+      !validProtocol ||
       parsed.origin !== origin ||
       parsed.username ||
       parsed.password
     ) {
-      throw invalid('Every allowed origin must be a specific HTTP or HTTPS origin.');
+      throw invalid(requireHttps
+        ? 'Every allowed origin must be a specific HTTPS origin in production.'
+        : 'Every allowed origin must be a specific HTTP or HTTPS origin.');
     }
     return origin;
   });
@@ -88,16 +93,16 @@ function validateOrigins(value) {
   return origins;
 }
 
-function validateCreateStoreBody(body) {
+function validateCreateStoreBody(body, originOptions) {
   const input = objectBody(body, ['name', 'slug', 'allowedOrigins']);
   return {
     name: validateName(input.name),
     slug: validateSlug(input.slug),
-    allowedOrigins: validateOrigins(input.allowedOrigins),
+    allowedOrigins: validateOrigins(input.allowedOrigins, originOptions),
   };
 }
 
-function validateUpdateStoreBody(body) {
+function validateUpdateStoreBody(body, originOptions) {
   const input = objectBody(body, ['name', 'slug', 'allowedOrigins']);
   if (Object.keys(input).length === 0) {
     throw invalid('At least one store field must be supplied.');
@@ -106,7 +111,7 @@ function validateUpdateStoreBody(body) {
     ...(input.name !== undefined ? { name: validateName(input.name) } : {}),
     ...(input.slug !== undefined ? { slug: validateSlug(input.slug) } : {}),
     ...(input.allowedOrigins !== undefined
-      ? { allowedOrigins: validateOrigins(input.allowedOrigins) }
+      ? { allowedOrigins: validateOrigins(input.allowedOrigins, originOptions) }
       : {}),
   };
 }

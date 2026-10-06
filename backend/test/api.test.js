@@ -174,6 +174,22 @@ test('repeated failed admin logins are rate limited', async () => {
   });
 });
 
+test('failed admin login limits are isolated by normalized email', async () => {
+  await withServer(async ({ baseUrl }) => {
+    const login = (email) => request(baseUrl, '/api/v1/admin/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: 'invalid-password' }),
+    });
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      assert.equal((await login('first@example.invalid')).status, 401);
+    }
+    assert.equal((await login('FIRST@example.invalid')).status, 429);
+    assert.equal((await login('second@example.invalid')).status, 401);
+  });
+});
+
 test('oversized JSON is rejected before cart processing', async () => {
   await withServer(async ({ baseUrl }) => {
     const body = JSON.stringify({ padding: 'x'.repeat(101 * 1024) });
@@ -204,6 +220,84 @@ test('disallowed CORS origins receive no allow-origin header', async () => {
   });
 });
 
+test('store CORS preflights are rate limited before origin database lookups', async () => {
+  await withServer(async ({ baseUrl, pool }) => {
+    let response;
+    let allowedResponse;
+    const originalLog = console.log;
+    console.log = () => {};
+    try {
+      for (let attempt = 0; attempt < 121; attempt += 1) {
+        response = await request(baseUrl, '/api/v1/products', {
+          method: 'OPTIONS',
+          headers: {
+            Origin: 'https://store-one.example',
+            'Access-Control-Request-Method': 'GET',
+            'Access-Control-Request-Headers': 'x-store-key',
+          },
+        });
+        if (attempt === 0) {
+          allowedResponse = response;
+        }
+        assert.equal(response.status, attempt < 120 ? 204 : 429);
+      }
+    } finally {
+      console.log = originalLog;
+    }
+
+    assert.equal(allowedResponse.headers['access-control-allow-origin'], 'https://store-one.example');
+    assert.equal(response.json.error.code, 'RATE_LIMITED');
+    assert.ok(response.headers['retry-after']);
+    assert.equal(
+      pool.calls.filter(({ sql }) => sql.includes('JSON_CONTAINS(allowed_origins')).length,
+      120,
+    );
+  });
+});
+
+test('production CORS does not allow an HTTP origin retained in store configuration', async () => {
+  await withServer(async ({ baseUrl }) => {
+    const response = await request(baseUrl, '/api/v1/products', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'http://insecure.example',
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'x-store-key',
+      },
+    });
+
+    assert.equal(response.headers['access-control-allow-origin'], undefined);
+  }, { nodeEnv: 'production', storeAllowedOrigins: ['http://insecure.example'] });
+});
+
+test('production store creation rejects HTTP origins before writing to the database', async () => {
+  await withServer(async ({ baseUrl, pool }) => {
+    const adminToken = jwt.sign({}, authConfig.adminJwtSecret, {
+      algorithm: 'HS256',
+      subject: '9',
+      issuer: authConfig.issuer,
+      audience: authConfig.adminAudience,
+      expiresIn: 900,
+    });
+    const response = await request(baseUrl, '/api/v1/admin/stores', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: 'Insecure Store',
+        slug: 'insecure-store',
+        allowedOrigins: ['http://insecure.example'],
+      }),
+    });
+
+    assert.equal(response.status, 422);
+    assert.equal(response.json.error.code, 'VALIDATION_ERROR');
+    assert.equal(pool.calls.some(({ sql }) => sql.startsWith('INSERT INTO stores')), false);
+  }, { nodeEnv: 'production', adminRole: 'super_admin' });
+});
+
 test('production API errors do not expose internal messages or secrets', async () => {
   await withServer(async ({ baseUrl }) => {
     const response = await request(baseUrl, '/api/v1/products', {
@@ -216,6 +310,35 @@ test('production API errors do not expose internal messages or secrets', async (
     });
     assert.doesNotMatch(response.text, /unexpected test query|stack|secret/i);
   }, { failCatalog: true, nodeEnv: 'production' });
+});
+
+test('unexpected server errors are logged with request IDs and production-safe details', async () => {
+  const originalError = console.error;
+  const logs = [];
+  console.error = (entry) => logs.push(entry);
+  try {
+    await withServer(async ({ baseUrl }) => {
+      const response = await request(baseUrl, '/api/v1/products', {
+        headers: { 'X-Store-Key': storeKeys[1] },
+      });
+      assert.equal(response.status, 500);
+      assert.deepEqual(response.json.error, {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An unexpected error occurred.',
+      });
+    }, { failCatalog: true, nodeEnv: 'production' });
+  } finally {
+    console.error = originalError;
+  }
+
+  assert.equal(logs.length, 1);
+  const event = JSON.parse(logs[0]);
+  assert.equal(event.event, 'http.server_error');
+  assert.match(event.requestId, /^[0-9a-f-]{36}$/);
+  assert.equal(event.errorClass, 'Error');
+  assert.equal(event.message, 'Unhandled request error.');
+  assert.equal(event.stack, undefined);
+  assert.doesNotMatch(logs[0], /test catalog failure secret|X-Store-Key|sk_[A-Za-z0-9_-]{43}/);
 });
 
 test('request logs are structured, correlate by request ID, and omit credentials', async () => {

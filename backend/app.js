@@ -28,7 +28,7 @@ function createApp(config, pool) {
   const app = express();
 
   app.disable('x-powered-by');
-  app.set('trust proxy', false);
+  app.set('trust proxy', config.trustProxy || false);
   app.use(helmet());
   app.use(requestId);
   app.use(requestLogger);
@@ -48,11 +48,20 @@ function createApp(config, pool) {
   app.use('/media/products', limitPublicMediaRequests);
   app.use(cors((request, callback) => {
     const origin = request.get('origin');
-    const allowed = request.store
+    let secureOrigin = true;
+    if (config.nodeEnv === 'production') {
+      try {
+        const parsedOrigin = new URL(origin);
+        secureOrigin = parsedOrigin.protocol === 'https:' && parsedOrigin.origin === origin;
+      } catch {
+        secureOrigin = false;
+      }
+    }
+    const allowed = secureOrigin && (request.store
       ? request.store.allowed_origins.includes(origin)
       : request.storeScopedRequest
         ? request.storeOriginAllowed
-        : config.allowedOrigins.includes(origin);
+        : config.allowedOrigins.includes(origin));
     callback(null, { origin: origin && allowed ? origin : false });
   }));
   app.use(authorizeStoreImage(pool));
@@ -70,7 +79,7 @@ function createApp(config, pool) {
   app.use('/api/v1', createReadinessRoutes(pool));
   app.use('/api/v1', createCatalogRoutes(pool));
   app.use('/api/v1/admin/auth', createAdminAuthRoutes(pool, config.auth));
-  app.use('/api/v1/admin', createAdminStoresRoutes(pool, config.auth));
+  app.use('/api/v1/admin', createAdminStoresRoutes(pool, config.auth, config.nodeEnv));
   app.use('/api/v1/admin', createAdminOrdersRoutes(pool, config.auth));
   app.use('/api/v1/admin', createAdminCatalogRoutes(pool, config.auth));
   app.use('/api/v1/auth', createCustomerAuthRoutes(pool, config.auth));
